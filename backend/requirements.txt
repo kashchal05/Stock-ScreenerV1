@@ -1,0 +1,13 @@
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+sqlalchemy==2.0.*
+pydantic==2.11.*
+pydantic-settings==2.*
+pandas==2.2.*
+numpy>=1.26,<3
+yfinance==0.2.*
+lxml>=5
+xgboost==2.1.*
+scikit-learn==1.6.*
+pytest==8.*
+httpx==0.28.*
