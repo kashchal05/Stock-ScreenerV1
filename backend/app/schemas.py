@@ -111,6 +111,7 @@ class PredictionOut(BaseModel):
 class ModelReportOut(BaseModel):
     model_available: bool
     version: str | None = None
+    target: str | None = None
     trained_at: datetime | None = None
     horizon_days: int | None = None
     train_start: date | None = None
@@ -118,6 +119,7 @@ class ModelReportOut(BaseModel):
     feature_count: int | None = None
     metrics: dict | None = None
     backtest: dict | None = None
+    calibration: dict | None = None
     caveats: list[str] = []
 
 

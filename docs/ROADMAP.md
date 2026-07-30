@@ -39,27 +39,27 @@ Ordered roughly by value-for-effort. Each item says *what*, *why*, *how* (where 
 
 ## Phase C — Make the AI meaningfully better
 
-> Honest framing first: the current model shows **no edge** (AUC ≈ 0.50), and that's the truthful baseline for technical-only features on daily data. These steps are how you'd search for real signal — treat them as experiments with the walk-forward harness as your judge, not guaranteed wins.
+> **Update (done):** C1, C3, C4, C5 shipped in the cross-sectional upgrade. The model now predicts *outperformance vs the S&P 500 median* over 21 days, using momentum factors + within-date rank features, with isotonic calibration and a costs/long-short/Sharpe backtest. Result: **rank IC ≈ +0.03, market-neutral long-short Sharpe ≈ 0.5** — a small but real edge, up from the old no-signal baseline (AUC 0.497). The remaining items below are the next frontier.
 
-### C1. Cross-sectional ranking instead of absolute direction (M — best idea here)
-- **Why**: "will AAPL go up?" is mostly market noise. "Will AAPL beat the median S&P stock this month?" removes the market factor and is the actual quant formulation (relative momentum has decades of literature).
-- **How**: change the label in `ml/labeling.py` to *forward return minus that date's universe-median forward return* > 0. Features stay the same. The backtest (top-K long) is already cross-sectional, so it gets more coherent too.
+### ✅ C1. Cross-sectional ranking instead of absolute direction — DONE
+Shipped: `ml/labeling.py` `cross_sectional_labels` (beat the same-day universe median), `ml/cross_section.py` (within-date rank features + skew-safe inference).
 
-### C2. Fundamental + calendar features (M)
-- **Why**: price-only features are the most-arbitraged information on earth. Valuation, profitability, and earnings-date proximity add orthogonal signal.
-- **How**: extend `features.py` with slow-moving per-ticker features (P/E percentile vs sector, market-cap bucket, days-to-earnings from `yf.Ticker.calendar`). Note: historical fundamentals are hard to get point-in-time for free — flag this as a data-quality caveat.
+### C2. Fundamental + calendar features (M) — next highest-value
+- **Why**: price-only features are the most-arbitraged information on earth. Valuation, profitability, and earnings-date proximity add orthogonal signal to the momentum factors already in place.
+- **How**: extend `features.py` (Stage 1) with slow-moving per-ticker features and add their `xs_*` ranks in `cross_section.py` (P/E percentile vs sector, market-cap bucket, days-to-earnings from `yf.Ticker.calendar`). Historical fundamentals are hard to get point-in-time for free — flag as a data-quality caveat.
 
-### C3. Longer horizons (S)
-- **Why**: signal-to-noise improves with horizon; 1–3 month relative momentum is far more documented than 10-day direction.
-- **How**: `scripts/train_model.py --horizon 21` (or 63) already works end to end. Compare walk-forward AUC across horizons and keep the best.
+### ✅ C3. Longer horizons — DONE (21 days)
+Horizon is `PREDICTION_HORIZON_DAYS` (default 21). Sweep `--horizon 63` vs 21 and keep the best rank IC if you want to tune further.
 
-### C4. Probability calibration + uncertainty display (S)
-- **Why**: if the model says 60%, it should be right 60% of the time — calibration is what makes probabilities honest.
-- **How**: fit `sklearn.isotonic.IsotonicRegression` on walk-forward out-of-fold predictions, store it in the artifact, apply at inference. Add a calibration plot to the model report.
+### ✅ C4. Probability calibration — DONE
+Isotonic on out-of-fold predictions, stored as `calibration.json`, applied at inference; reliability curve on `/model`.
 
-### C5. Better backtest realism (M)
-- **Why**: current backtest ignores costs and overlap.
-- **How**: subtract ~5–10 bps per trade in `ml/backtest.py`, add turnover stats, and try overlapping portfolios (rebalance daily with 1/10 of capital) to reduce start-date luck. Also report Sharpe, not just total return.
+### ✅ C5. Backtest realism — DONE (costs + long-short + Sharpe)
+Next refinement if desired: overlapping portfolios (rebalance daily with 1/N of capital) to reduce start-date luck, and per-trade turnover accounting instead of the flat round-trip cost.
+
+### C6. Learning-to-rank objective (M) — new idea
+- **Why**: the backtest cares about *ordering* stocks, so optimize ordering directly instead of binary classification.
+- **How**: XGBoost `rank:pairwise` / `rank:ndcg` with per-date query groups; label by forward-return rank. Compare rank IC vs the current classifier.
 
 ## Phase D — Quality of life
 

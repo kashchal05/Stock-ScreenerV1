@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     yf_batch_size: int = 100
     backfill_years: int = 5
-    prediction_horizon_days: int = 10
+    prediction_horizon_days: int = 21
 
     @property
     def cors_origin_list(self) -> list[str]:

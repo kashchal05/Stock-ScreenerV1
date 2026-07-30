@@ -8,6 +8,12 @@ import {
   Legend,
 } from 'recharts'
 
+const SERIES = {
+  long_only: { label: 'Long-only (top 20)', color: 'var(--accent)' },
+  long_short: { label: 'Long-short (market-neutral)', color: 'var(--pos)' },
+  spy: { label: 'SPY buy & hold', color: 'var(--text-dim)' },
+}
+
 export default function EquityCurveChart({ curve }) {
   if (!curve || curve.length === 0) return null
   return (
@@ -37,12 +43,13 @@ export default function EquityCurveChart({ curve }) {
           labelStyle={{ color: 'var(--text-dim)' }}
           formatter={(value, name) => [
             value != null ? `${value.toFixed(3)}x` : '—',
-            name === 'strategy' ? 'Model strategy' : 'SPY buy & hold',
+            SERIES[name]?.label || name,
           ]}
         />
-        <Legend formatter={(v) => (v === 'strategy' ? 'Model strategy' : 'SPY buy & hold')} />
-        <Line type="monotone" dataKey="strategy" stroke="var(--accent)" strokeWidth={2} dot={false} />
-        <Line type="monotone" dataKey="spy" stroke="var(--text-dim)" strokeWidth={2} dot={false} />
+        <Legend formatter={(v) => SERIES[v]?.label || v} />
+        {Object.entries(SERIES).map(([key, { color }]) => (
+          <Line key={key} type="monotone" dataKey={key} stroke={color} strokeWidth={2} dot={false} />
+        ))}
       </LineChart>
     </ResponsiveContainer>
   )

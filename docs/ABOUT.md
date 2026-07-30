@@ -53,8 +53,13 @@ To stop: `Ctrl+C` in the terminal running `start.sh`.
 4. Add interesting names to the watchlist, with a buy price if you own them.
 5. Occasionally retrain: `scripts/train_model.py` (e.g. monthly, so the model sees recent data).
 
+## What the AI actually predicts
+
+The model does **not** guess "will this stock go up?" — that's ~90% driven by the whole market moving and is close to a coin flip. Instead it predicts **which stocks will outperform the S&P 500 median** over the next 21 trading days (a "cross-sectional" or market-neutral target). It uses momentum factors and each stock's rank versus the rest of the universe, and its probabilities are calibrated (a shown "62%" really means ~62%).
+
 ## Important honesty notes
 
 - Price data comes from Yahoo Finance (free) and is **~15 minutes delayed**, daily bars only.
-- The AI model is **evaluated honestly, and currently shows no real predictive edge** (see `/model`). Predicting short-term stock direction from price history alone is close to impossible; this app's value is that it *tells you the truth about that* instead of showing fake accuracy.
+- The model is **evaluated honestly** on the `/model` page. The headline number is the **rank information coefficient (IC ≈ 0.03)** — a small but genuine edge (0.02–0.05 is the realistic range for this kind of model). The market-neutral long-short backtest is modestly positive after costs; the flashier long-only number is inflated by overall market gains and survivorship bias, and the page says so.
+- This is "small but real signal," not a money printer. Equity prediction has a low ceiling; the app's value is that it measures its own skill truthfully instead of showing fake accuracy.
 - **Nothing in this app is investment advice.**

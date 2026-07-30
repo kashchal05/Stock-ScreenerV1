@@ -73,7 +73,7 @@ export default function Watchlist() {
                 <th>1D %</th>
                 <th>Value</th>
                 <th>Gain/loss</th>
-                <th>AI prob ↑</th>
+                <th>AI outperform</th>
                 <th></th>
               </tr>
             </thead>

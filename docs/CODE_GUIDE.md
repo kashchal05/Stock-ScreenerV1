@@ -93,17 +93,21 @@ Two rules shape the whole design:
 
 ### ML pipeline (`ml/`)
 
-- **`features.py`** — *the most important file in the repo.* Hand-rolled implementations of RSI, MACD, ATR, moving-average ratios, volatility, volume trends, 52-week range position, and SPY-relative return — ~21 features total, each 3–6 lines of rolling-window pandas. Hand-rolled because the popular `pandas-ta` package is unmaintained (breaks with numpy 2) and because owning the math means training and serving *cannot* diverge. Every feature uses only past data (rolling windows / non-negative shifts); a unit test proves changing future rows can't change past features. `FEATURE_COLUMNS` (the ordered list) is stored inside each model artifact and checked at load time.
-- **`labeling.py`** — the prediction target: `label = 1` if the close is higher 10 trading days later. Uses `shift(-10)`, so the *label* looks forward while *features* look backward — the last 10 rows per stock have no label and are excluded from training (the newest of them is exactly what live predictions score).
-- **`dataset.py`** — stacks every stock's feature rows into one big training table (~618k rows × 21 features + symbol/date/label metadata).
+> **The model is cross-sectional.** It does not predict "will this stock go up?" (that's ~90% market noise). It predicts "will this stock **outperform the S&P 500 median** over the next 21 trading days?" — the standard quant formulation, which removes the market factor and is 50/50 balanced by construction. Features come in two stages: per-symbol time series, then same-date ranks across the whole universe.
+
+- **`features.py`** — *Stage 1, the most important file in the repo.* Hand-rolled RSI, MACD, ATR, moving-average ratios, volatility, volume trends, 52-week range, SPY-relative return, and the **momentum factors** (`mom_12_1`, `mom_6_1` = 12- and 6-month momentum skipping the last month; `vol_adj_mom` = risk-adjusted momentum) — 24 per-symbol features, each a few lines of rolling-window pandas. Hand-rolled because `pandas-ta` is unmaintained and because owning the math means training and serving *cannot* diverge. Every feature uses only past data; a unit test proves changing future rows can't change past features.
+- **`cross_section.py`** — *Stage 2.* `add_cross_sectional_features` takes the pooled panel and adds `xs_*` columns = each stock's **percentile rank within its date** for momentum, returns, RSI, volatility, trend, relative strength, and 52-week position. Ranking within a date uses only same-date data (no lookahead), and gives the model relative positioning rather than absolute levels. `MODEL_FEATURE_COLUMNS` = Stage 1 + Stage 2 (32 features) is the ordered list stored in each artifact and asserted at load. `build_latest_cross_section` reproduces the exact same transform on the current universe for inference — the key guard against train/serve skew.
+- **`labeling.py`** — `compute_forward_returns` (H-day forward return) plus `cross_sectional_labels`: `label = 1` if a stock's forward return beats its date's universe median. `shift(-H)` means the *label* looks forward while *features* look backward — the last H rows per stock are unlabeled (the newest is exactly what live inference scores).
+- **`dataset.py`** — the pipeline: per-symbol Stage-1 features + forward returns → pool (~613k rows) → Stage-2 cross-sectional ranks → cross-sectional labels. Keeps `fwd_ret` and `close` columns so the backtester reuses them.
 - **`train.py`** — training and honest evaluation:
-  - **Walk-forward validation**: 5 folds, each training on all data *before* a 6-month test window and testing on that window. Time-ordered splits, never random — random splits would let the model "see the future" and produce fake accuracy.
-  - **Embargo**: additionally drops the last ~10 trading days of training data before each test window, because those rows' labels peek into the test period. This is the leak almost everyone misses.
-  - Metrics per fold: accuracy, ROC-AUC, and hit rate on high-confidence picks — always alongside the **base rate** (stocks rise ~54% of 10-day windows, so 54% accuracy = zero skill).
+  - **Walk-forward validation**: 5 folds, each training on all data *before* a 6-month test window. Time-ordered, never random — random splits leak the future and produce fake accuracy.
+  - **Embargo**: drops the H trading days of training data before each test window, because those rows' labels peek into the test period. The leak almost everyone misses.
+  - **Rank IC** (`_rank_ic`): the mean daily Spearman correlation between prediction and realized forward return — the standard measure of cross-sectional signal quality (~0.02–0.05 is a real edge). This is the headline metric, reported alongside accuracy, ROC-AUC, and base rate.
+  - **`fit_calibration`**: isotonic regression on the out-of-fold predictions, serialized as x/y knots (no pickle) so a displayed "62%" really means ~62%.
   - Finally retrains on all labeled data for the production artifact.
-- **`backtest.py`** — simulates "every 10 days, buy the model's top-20 picks, equal weight" across the walk-forward test windows and compares the equity curve to just holding SPY. Also defines the `CAVEATS` list shown in the UI (survivorship bias, no trading costs, delayed data, not advice).
-- **`artifacts.py`** — saves each trained model as a versioned folder (`artifacts/v20260711_0023/`) containing the model in XGBoost's native JSON format (stable across versions, unlike pickle), the feature list, metadata, and backtest results; registers it in `model_versions` and flips `is_active`.
-- **`inference.py`** — scores a stock's latest bar and explains it: XGBoost's built-in TreeSHAP (`pred_contribs=True`) returns exactly how much each feature pushed this prediction up or down; the top 5 become the signal bars in the UI.
+- **`backtest.py`** — over the walk-forward test windows, every 21 days forms two portfolios: **long-only** top-20, and **long-short** (long top-20, short bottom-20, market-neutral). Charges ~10 bps/side transaction costs and reports total return, **Sharpe**, volatility, max drawdown, and hit rate for each, plus rank IC and the SPY benchmark. The long-short curve is the honest measure of stock-picking skill (the long-only mostly rides market beta + survivorship bias). Also defines the `CAVEATS` list shown in the UI.
+- **`artifacts.py`** — saves each model as a versioned folder containing the model (XGBoost native JSON, not pickle), the feature list, `calibration.json`, metadata (including the target type), and backtest results; registers it in `model_versions` and flips `is_active`. Load-time check: the stored feature list must equal the current `MODEL_FEATURE_COLUMNS`, or it refuses to load (skew guard).
+- **`inference.py`** — `score_row` scores one already-cross-sectional feature row (from `build_latest_cross_section`), applies calibration, and explains it with XGBoost's built-in TreeSHAP (`pred_contribs=True`) — the top 5 signed contributions become the signal bars in the UI. Scoring a stock in isolation would omit the `xs_*` ranks, so inference always goes through the universe cross-section.
 
 ### API routes (`routers/`)
 
@@ -122,8 +126,9 @@ Handlers are deliberately plain `def` (not `async def`): FastAPI runs them in a 
 - **`scripts/seed_universe.py`** — one-time: load the S&P 500 list.
 - **`scripts/refresh_data.py`** — CLI version of the full refresh; this is what a cron job would run in production.
 - **`scripts/train_model.py`** — dataset → walk-forward eval (prints the fold table) → backtest → save artifact → re-score snapshots. Prints a warning if AUC looks suspiciously high (that means leakage, not brilliance).
-- **`tests/test_features.py`** — indicator math vs hand-computed values; RSI bounds; **the no-lookahead property test**.
+- **`tests/test_features.py`** — indicator math vs hand-computed values; RSI bounds; momentum-factor math; **the no-lookahead property test**.
 - **`tests/test_labeling.py`** — label alignment and the unlabeled tail.
+- **`tests/test_cross_section.py`** — cross-sectional label balance (~50%), the within-date rank no-leakage property, rank-IC on a synthetic signal, and calibration monotonicity.
 - **`tests/test_screener.py`** — filter/sort/pagination logic against an in-memory SQLite database.
 
 ## 4. Frontend walkthrough (`frontend/src/`)

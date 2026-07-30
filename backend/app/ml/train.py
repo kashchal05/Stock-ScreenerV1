@@ -11,9 +11,11 @@ import logging
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from scipy.stats import spearmanr
+from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 
-from app.ml.features import FEATURE_COLUMNS
+from app.ml.cross_section import MODEL_FEATURE_COLUMNS as FEATURE_COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,35 @@ TEST_MONTHS = 6
 
 def _make_model() -> xgb.XGBClassifier:
     return xgb.XGBClassifier(**XGB_PARAMS)
+
+
+def _rank_ic(dates: pd.Series, prob: np.ndarray, fwd_ret: pd.Series) -> float | None:
+    """Mean daily rank information coefficient: the Spearman correlation between
+    predicted probability and realized forward return, computed within each date
+    and averaged. The standard measure of cross-sectional signal quality; ~0.02-0.05
+    is a real, usable edge.
+    """
+    if fwd_ret is None:
+        return None
+    frame = pd.DataFrame({"date": dates.to_numpy(), "prob": prob, "fwd_ret": fwd_ret.to_numpy()})
+    frame = frame.dropna()
+    ics = []
+    for _, group in frame.groupby("date"):
+        if len(group) >= 10 and group["prob"].nunique() > 1 and group["fwd_ret"].nunique() > 1:
+            ic, _ = spearmanr(group["prob"], group["fwd_ret"])
+            if not np.isnan(ic):
+                ics.append(ic)
+    return float(np.mean(ics)) if ics else None
+
+
+def fit_calibration(prob: np.ndarray, labels: np.ndarray) -> dict:
+    """Fit isotonic calibration on out-of-fold predictions. Serialized as x/y knots
+    so inference can reproduce it with np.interp (no pickle)."""
+    iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+    iso.fit(prob, labels)
+    grid = np.linspace(0.0, 1.0, 101)
+    calibrated = iso.predict(grid)
+    return {"x": grid.tolist(), "y": [float(v) for v in calibrated]}
 
 
 def _fold_metrics(y_true: np.ndarray, prob: np.ndarray) -> dict:
@@ -85,7 +116,9 @@ def walk_forward_evaluate(panel: pd.DataFrame, horizon: int) -> tuple[dict, list
 
         metrics = _fold_metrics(test["label"].to_numpy(), prob)
         metrics["train_rows"] = int(len(train))
-        predictions = test[["symbol", "date", "label"]].copy()
+        metrics["rank_ic"] = _rank_ic(test["date"], prob, test["fwd_ret"])
+        cols = ["symbol", "date", "label"] + (["fwd_ret"] if "fwd_ret" in test else [])
+        predictions = test[cols].copy()
         predictions["prob"] = prob
         fold_results.append(
             {
@@ -108,10 +141,17 @@ def walk_forward_evaluate(panel: pd.DataFrame, horizon: int) -> tuple[dict, list
     if not fold_results:
         raise RuntimeError("No folds had enough data — is the bars cache populated?")
 
-    all_labels = np.concatenate([f["test_predictions"]["label"].to_numpy() for f in fold_results])
-    all_probs = np.concatenate([f["test_predictions"]["prob"].to_numpy() for f in fold_results])
-    aggregate = _fold_metrics(all_labels, all_probs)
+    oof = pd.concat([f["test_predictions"] for f in fold_results], ignore_index=True)
+    aggregate = _fold_metrics(oof["label"].to_numpy(), oof["prob"].to_numpy())
     aggregate["n_folds"] = len(fold_results)
+    aggregate["rank_ic"] = (
+        _rank_ic(oof["date"], oof["prob"].to_numpy(), oof.get("fwd_ret"))
+        if "fwd_ret" in oof
+        else None
+    )
+    aggregate["mean_fold_rank_ic"] = float(
+        np.mean([f["metrics"]["rank_ic"] for f in fold_results if f["metrics"].get("rank_ic") is not None])
+    ) if any(f["metrics"].get("rank_ic") is not None for f in fold_results) else None
     return aggregate, fold_results
 
 

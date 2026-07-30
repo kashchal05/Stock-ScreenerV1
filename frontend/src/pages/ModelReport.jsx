@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchModelReport } from '../api.js'
 import EquityCurveChart from '../components/EquityCurveChart.jsx'
+import CalibrationChart from '../components/CalibrationChart.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { fmtPct, fmtNumber } from '../utils/format.js'
@@ -31,40 +32,56 @@ export default function ModelReport() {
   const agg = report.metrics?.aggregate || {}
   const folds = report.metrics?.folds || []
   const bt = report.backtest || {}
-  const edge = agg.accuracy != null && agg.base_rate != null ? agg.accuracy - agg.base_rate : null
+  const lo = bt.long_only || {}
+  const ls = bt.long_short || {}
+  const ic = agg.rank_ic ?? bt.rank_ic
 
   return (
     <div>
       <h1>AI Model</h1>
       <p className="subtitle">
-        {report.version} · trained {report.trained_at?.slice(0, 10)} · predicts direction over{' '}
-        {report.horizon_days} trading days · {report.feature_count} features · walk-forward validated
+        {report.version} · trained {report.trained_at?.slice(0, 10)} · <strong>cross-sectional</strong> target
+        (beat the S&P 500 median) over {report.horizon_days} trading days · {report.feature_count} features ·
+        walk-forward validated
       </p>
 
+      <div className="caveats" style={{ marginTop: 0, marginBottom: 16 }}>
+        <strong>How to read this:</strong> the headline number is the <strong>rank information
+        coefficient (IC)</strong> — the correlation between the model's ranking and what actually
+        happened. IC around 0.02–0.05 is a small but genuine edge. The <strong>market-neutral
+        long-short</strong> result is the honest measure of stock-picking skill; the long-only curve
+        looks bigger mainly because it rides the overall market (and survivorship bias).
+      </div>
+
       <div className="cards" style={{ marginBottom: 16 }}>
+        <div className="card">
+          <div className="label">Rank IC (signal quality)</div>
+          <div className={`value ${ic != null ? (ic >= 0 ? 'pos' : 'neg') : ''}`}>
+            {ic != null ? ic.toFixed(4) : '—'}
+          </div>
+        </div>
         <div className="card">
           <div className="label">ROC-AUC</div>
           <div className="value">{fmtNumber(agg.roc_auc, 3)}</div>
         </div>
         <div className="card">
-          <div className="label">Accuracy</div>
-          <div className="value">{agg.accuracy != null ? (agg.accuracy * 100).toFixed(1) + '%' : '—'}</div>
-        </div>
-        <div className="card">
-          <div className="label">Base rate (always up)</div>
-          <div className="value">{agg.base_rate != null ? (agg.base_rate * 100).toFixed(1) + '%' : '—'}</div>
-        </div>
-        <div className="card">
-          <div className="label">Edge over base rate</div>
-          <div className={`value ${edge != null ? (edge >= 0 ? 'pos' : 'neg') : ''}`}>
-            {edge != null ? fmtPct(edge, 2) : '—'}
-          </div>
-        </div>
-        <div className="card">
-          <div className="label">Hit rate at prob &gt; 0.60</div>
+          <div className="label">Accuracy vs base rate</div>
           <div className="value">
-            {agg['precision_at_0.6'] != null ? (agg['precision_at_0.6'] * 100).toFixed(1) + '%' : '—'}
+            {agg.accuracy != null ? (agg.accuracy * 100).toFixed(1) + '%' : '—'}
+            <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+              {' '}/ {agg.base_rate != null ? (agg.base_rate * 100).toFixed(1) + '%' : '—'}
+            </span>
           </div>
+        </div>
+        <div className="card">
+          <div className="label">Long-short Sharpe (net)</div>
+          <div className={`value ${ls.sharpe != null ? (ls.sharpe >= 0 ? 'pos' : 'neg') : ''}`}>
+            {fmtNumber(ls.sharpe, 2)}
+          </div>
+        </div>
+        <div className="card">
+          <div className="label">Long-only Sharpe (net)</div>
+          <div className="value">{fmtNumber(lo.sharpe, 2)}</div>
         </div>
       </div>
 
@@ -79,7 +96,7 @@ export default function ModelReport() {
               <th>Accuracy</th>
               <th>Base rate</th>
               <th>ROC-AUC</th>
-              <th>Hit @ 0.60</th>
+              <th>Rank IC</th>
             </tr>
           </thead>
           <tbody>
@@ -91,10 +108,8 @@ export default function ModelReport() {
                 <td>{(f.metrics.accuracy * 100).toFixed(1)}%</td>
                 <td>{(f.metrics.base_rate * 100).toFixed(1)}%</td>
                 <td>{fmtNumber(f.metrics.roc_auc, 3)}</td>
-                <td>
-                  {f.metrics['precision_at_0.6'] != null
-                    ? (f.metrics['precision_at_0.6'] * 100).toFixed(1) + '%'
-                    : '—'}
+                <td className={f.metrics.rank_ic != null ? (f.metrics.rank_ic >= 0 ? 'pos' : 'neg') : ''}>
+                  {f.metrics.rank_ic != null ? f.metrics.rank_ic.toFixed(4) : '—'}
                 </td>
               </tr>
             ))}
@@ -104,13 +119,24 @@ export default function ModelReport() {
 
       {bt.equity_curve && (
         <div className="panel">
-          <h2>Backtest: {bt.strategy}</h2>
+          <h2>Backtest ({bt.start} → {bt.end}, {bt.cost_per_side_bps} bps/side)</h2>
           <p style={{ color: 'var(--text-dim)' }}>
-            {bt.start} → {bt.end} · strategy {fmtPct(bt.total_return)} vs SPY{' '}
-            {fmtPct(bt.spy_total_return)} · max drawdown {fmtPct(bt.max_drawdown)} · hit rate{' '}
-            {fmtPct(bt.hit_rate, 0)} over {bt.n_periods} periods
+            Long-only {fmtPct(lo.total_return)} (Sharpe {fmtNumber(lo.sharpe, 2)}, maxDD {fmtPct(lo.max_drawdown)})
+            {' · '}Long-short {fmtPct(ls.total_return)} (Sharpe {fmtNumber(ls.sharpe, 2)}, maxDD {fmtPct(ls.max_drawdown)})
+            {' · '}SPY {fmtPct(bt.spy_total_return)}
           </p>
           <EquityCurveChart curve={bt.equity_curve} />
+        </div>
+      )}
+
+      {report.calibration && (
+        <div className="panel">
+          <h2>Probability calibration</h2>
+          <p style={{ color: 'var(--text-dim)' }}>
+            Maps the model's raw score to the actual historical outperformance rate, so a
+            displayed “62%” really means ~62%.
+          </p>
+          <CalibrationChart calibration={report.calibration} />
         </div>
       )}
 

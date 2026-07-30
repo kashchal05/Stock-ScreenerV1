@@ -34,6 +34,18 @@ def test_returns_match_hand_computed():
     assert features["ret_5d"].iloc[-1] == pytest.approx(108 / 100 - 1)
 
 
+def test_momentum_12_1_hand_computed():
+    # need >252 bars for mom_12_1; build a rising series and check the shift math
+    closes = list(np.linspace(50, 300, 300))
+    bars = make_bars(closes)
+    features = compute_features(bars)
+    close = bars["close"]
+    expected = close.shift(21).iloc[-1] / close.shift(252).iloc[-1] - 1
+    assert features["mom_12_1"].iloc[-1] == pytest.approx(expected)
+    # skips the last 21 days, so it must not depend on the final bar
+    assert not np.isclose(features["mom_12_1"].iloc[-1], close.iloc[-1] / close.shift(252).iloc[-1] - 1)
+
+
 def test_rsi_bounds_and_direction():
     rising = rsi(pd.Series(np.linspace(100, 200, 60)))
     falling = rsi(pd.Series(np.linspace(200, 100, 60)))

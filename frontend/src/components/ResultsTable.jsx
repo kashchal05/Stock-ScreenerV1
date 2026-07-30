@@ -13,7 +13,7 @@ const COLUMNS = [
   { key: 'pct_from_52w_high', label: 'Off 52w high' },
   { key: 'avg_volume_20', label: 'Avg vol' },
   { key: 'market_cap', label: 'Mkt cap' },
-  { key: 'ai_prob_up', label: 'AI prob ↑' },
+  { key: 'ai_prob_up', label: 'AI outperform' },
 ]
 
 export default function ResultsTable({ rows, sortBy, sortDir, onSort }) {

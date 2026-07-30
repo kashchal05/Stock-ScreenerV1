@@ -35,6 +35,9 @@ FEATURE_COLUMNS = [
     "pos_52w",
     "pct_off_52w_high",
     "rel_ret_21d",
+    "mom_12_1",
+    "mom_6_1",
+    "vol_adj_mom",
 ]
 
 # Human-readable labels for prediction explanations.
@@ -60,6 +63,9 @@ FEATURE_LABELS = {
     "pos_52w": "Position in 52-week range",
     "pct_off_52w_high": "Distance from 52-week high",
     "rel_ret_21d": "1-month return vs S&P 500",
+    "mom_12_1": "12-1 month momentum",
+    "mom_6_1": "6-1 month momentum",
+    "vol_adj_mom": "Risk-adjusted momentum",
 }
 
 
@@ -138,5 +144,12 @@ def compute_features(df: pd.DataFrame, spy_close: pd.Series | None = None) -> pd
         out["rel_ret_21d"] = out["ret_21d"] - spy_ret_21d
     else:
         out["rel_ret_21d"] = np.nan
+
+    # Momentum factors. 12-1 and 6-1 skip the most recent month (shift 21) to
+    # avoid the well-known short-term reversal effect — the classic academic
+    # momentum construction. vol_adj_mom is Sharpe-like risk-adjusted momentum.
+    out["mom_12_1"] = close.shift(21) / close.shift(252) - 1
+    out["mom_6_1"] = close.shift(21) / close.shift(126) - 1
+    out["vol_adj_mom"] = out["ret_63d"] / out["vol_63d"]
 
     return out

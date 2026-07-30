@@ -35,17 +35,19 @@ Configuration is env-driven (12-factor): copy `backend/.env.example` to `backend
 
 ## How the ML works — and honest limitations
 
-**Features (21)**: multi-horizon returns, RSI, MACD, price-vs-SMA(20/50/200) ratios, volatility (21/63d), ATR, volume trends, dollar volume, 52-week range position, and 1-month return relative to SPY. All computed with rolling windows only — a unit test asserts that mutating future rows cannot change past feature values.
+**Target (cross-sectional)**: the model predicts which stocks will **outperform the S&P 500 median** over the next 21 trading days — not whether a stock rises. Absolute direction is ~90% market noise; the cross-sectional target removes the market factor, is 50/50 balanced by construction, and is the standard quant formulation.
 
-**Labels**: 1 if the close is higher 10 trading days later, else 0.
+**Features (32)**: two stages, both used identically in training and serving (no skew). *Stage 1 (per-symbol)*: multi-horizon returns, RSI, MACD, SMA ratios, volatility, ATR, volume trends, 52-week range, SPY-relative return, and momentum factors (12-1 and 6-1 month momentum, risk-adjusted momentum). *Stage 2 (cross-sectional)*: each stock's percentile **rank within its date** for the signals that matter relatively. All rolling/shift-only — a unit test asserts mutating future rows can't change past features, and another asserts within-date ranks don't leak across dates.
 
-**Evaluation**: 5-fold walk-forward with an expanding training window, split strictly by date, with a 10-day embargo before each test window so no training label's forward window overlaps test data. The report page shows accuracy *next to the base rate* (stocks drift up ~54% of the time, so accuracy alone flatters), ROC-AUC, hit rate on high-confidence picks, and a top-20 strategy backtest vs SPY buy-and-hold.
+**Labels**: 1 if a stock's 21-day forward return beats its date's universe median.
 
-**Current honest result**: the model shows **no reliable predictive edge** (AUC ≈ 0.50, accuracy below base rate, backtest trails SPY). This is the expected outcome of a leak-free evaluation of technical features on daily data — the value of this project is the correct pipeline: shared feature engineering between training and serving (no train/serve skew), leakage-safe splits, and metrics that don't lie.
+**Evaluation**: 5-fold walk-forward, expanding window, split strictly by date, with a 21-day embargo before each test window. The `/model` page reports the **rank information coefficient (IC)** — the correlation between the model's ranking and reality, the cleanest signal-quality measure — alongside ROC-AUC, accuracy vs base rate, isotonic-**calibrated** probabilities, and a backtest with transaction costs showing both long-only and market-neutral **long-short** curves (Sharpe, drawdown) vs SPY.
+
+**Current honest result**: **rank IC ≈ +0.03** (4 of 5 folds positive) and a **market-neutral long-short Sharpe ≈ 0.5** after costs — a small but genuine edge, up from the previous absolute-direction model that had none (AUC 0.497). AUC is ~0.51, i.e. *not* suspiciously high, so this is real signal, not leakage. The flashy long-only backtest (beats SPY) is inflated by market beta and survivorship bias; the long-short number is the truthful measure of stock-picking skill. Equity prediction has a low ceiling — the point is a correct, leak-free pipeline whose metrics don't lie.
 
 Known limitations, also disclosed in the UI:
 - **Survivorship bias**: the universe is *today's* S&P 500 members, so backtests are optimistic.
-- No transaction costs or slippage are modeled.
+- Transaction costs are modeled crudely (10 bps/side); shorting/borrow costs aren't included.
 - yfinance data is ~15-minutes delayed, unofficial, and daily-bar based.
 - **None of this is investment advice.**
 
@@ -53,10 +55,11 @@ Known limitations, also disclosed in the UI:
 
 ```
 yfinance → provider adapter → daily_bars (SQLite) → screener_snapshots → API → React
-                                        ↘ features → XGBoost artifact → predictions
+                                        ↘ Stage-1 features → Stage-2 cross-sectional
+                                          ranks → XGBoost artifact → predictions
 ```
 
-- `app/ml/features.py` is the single source of truth for indicator math — imported by the snapshot builder, training, backtesting, and inference. The artifact stores its feature list and inference asserts it matches.
+- `app/ml/features.py` (Stage 1) + `app/ml/cross_section.py` (Stage 2) are the single source of truth for feature math — imported by the snapshot builder, training, backtesting, and inference. The artifact stores its 32-feature list and inference asserts it matches, so training and serving can't diverge.
 - `app/providers/` isolates all yfinance quirks (MultiIndex normalization, batching, delisted-ticker handling) behind a `DataProvider` ABC; a paid API (Polygon/Finnhub) is a config change plus one new file.
 - yfinance is never called in a request handler: refreshes run via FastAPI `BackgroundTasks` with a status row the UI polls, and all reads hit SQLite — if the data source is down, the app degrades to cached data.
 - Model artifacts are versioned directories (`backend/artifacts/vYYYYMMDD_HHMM/`) using XGBoost's native JSON format, registered in a `model_versions` table with exactly one active version.

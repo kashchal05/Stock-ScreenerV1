@@ -14,7 +14,7 @@ export default function PredictionCard({ symbol }) {
   if (!pred.model_available) {
     return (
       <div className="panel">
-        <h2>AI trend prediction</h2>
+        <h2>AI outperformance prediction</h2>
         <div className="state">
           No trained model yet. Run <code>python scripts/train_model.py</code> in the backend,
           then refresh. See <Link to="/model">AI Model</Link> for details.
@@ -30,11 +30,11 @@ export default function PredictionCard({ symbol }) {
 
   return (
     <div className="panel">
-      <h2>AI trend prediction</h2>
+      <h2>AI outperformance prediction</h2>
       <div className="prob-gauge">
         <span className="prob" style={{ color }}>{pct.toFixed(1)}%</span>
         <span style={{ color: 'var(--text-dim)' }}>
-          chance of being higher in {pred.horizon_days} trading days
+          chance of beating the S&P 500 median over {pred.horizon_days} trading days
         </span>
       </div>
       <div className="prob-bar-track">

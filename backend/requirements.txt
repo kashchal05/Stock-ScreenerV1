@@ -9,5 +9,6 @@ yfinance==0.2.*
 lxml>=5
 xgboost==2.1.*
 scikit-learn==1.6.*
+scipy==1.17.*
 pytest==8.*
 httpx==0.28.*
