@@ -32,6 +32,9 @@ export const updateWatchlistItem = (id, payload) =>
 export const deleteWatchlistItem = (id) =>
   client.delete(`/watchlist/${id}`)
 
+export const searchTickers = (q) =>
+  client.get('/search', { params: { q } }).then((r) => r.data)
+
 export const fetchMeta = () => client.get('/meta').then((r) => r.data)
 
 export const triggerRefresh = () =>

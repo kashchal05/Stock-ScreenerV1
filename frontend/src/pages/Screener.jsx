@@ -3,9 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { fetchScreener } from '../api.js'
 import FilterPanel from '../components/FilterPanel.jsx'
 import ResultsTable from '../components/ResultsTable.jsx'
+import ScreenerPresets from '../components/ScreenerPresets.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import ErrorBanner from '../components/ErrorBanner.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { downloadCsv } from '../utils/format.js'
 
 const PAGE_SIZE = 50
 
@@ -41,7 +43,9 @@ export default function Screener() {
   const error = loading ? null : result.error
 
   const applyFilters = (filters) => {
-    setSearchParams({ ...filters, sort_by: sortBy, sort_dir: sortDir })
+    // Keep the current sort by default, but let a preset that specifies its own
+    // sort_by/sort_dir win (spread filters last).
+    setSearchParams({ sort_by: sortBy, sort_dir: sortDir, ...filters })
   }
 
   const onSort = (key) => {
@@ -60,12 +64,22 @@ export default function Screener() {
       <p className="subtitle">
         Filter the S&P 500 by price, momentum, valuation, and AI trend score.
       </p>
+      <ScreenerPresets onApply={applyFilters} />
       <FilterPanel key={paramsKey} params={params} onApply={applyFilters} />
       <ErrorBanner error={error} />
       {loading ? (
         <LoadingSpinner label="Screening stocks…" />
       ) : data && data.results.length > 0 ? (
         <div className="panel">
+          <div className="results-header">
+            <span className="freshness">{data.total} matches</span>
+            <button
+              className="secondary"
+              onClick={() => downloadCsv(data.results, 'screener.csv')}
+            >
+              Export CSV
+            </button>
+          </div>
           <ResultsTable rows={data.results} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
           <div className="pagination">
             <span>

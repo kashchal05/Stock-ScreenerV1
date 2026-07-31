@@ -33,3 +33,29 @@ export function changeClass(value) {
   if (value == null) return ''
   return value >= 0 ? 'pos' : 'neg'
 }
+
+const CSV_COLUMNS = [
+  'symbol', 'name', 'sector', 'price', 'change_1d', 'change_1w', 'change_1m',
+  'change_ytd', 'rsi_14', 'pct_from_52w_high', 'avg_volume_20', 'market_cap',
+  'pe_ratio', 'ai_prob_up',
+]
+
+export function downloadCsv(rows, filename = 'screener.csv') {
+  if (!rows || rows.length === 0) return
+  const escape = (v) => {
+    if (v == null) return ''
+    const s = String(v)
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const lines = [
+    CSV_COLUMNS.join(','),
+    ...rows.map((r) => CSV_COLUMNS.map((c) => escape(r[c])).join(',')),
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}

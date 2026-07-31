@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import admin, predictions, screener, stocks, watchlist
+from app.routers import admin, predictions, screener, search, stocks, watchlist
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -26,6 +26,7 @@ def init_db():
 
 
 app.include_router(screener.router)
+app.include_router(search.router)
 app.include_router(stocks.router)
 app.include_router(predictions.router)
 app.include_router(watchlist.router)
