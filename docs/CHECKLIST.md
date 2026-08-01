@@ -1,6 +1,6 @@
 # Improvement Checklist
 
-A living checklist of everything on the roadmap. Effort: **S** = a few hours · **M** = a day or two · **L** = ~a week · **XL** = multi-week. Value: ⭐–⭐⭐⭐. See `ROADMAP.md` for the reasoning behind each item.
+A living checklist of everything on the roadmap. Effort: **S** = a few hours · **M** = a day or two · **L** = ~a week · **XL** = multi-week. Value: ⭐–⭐⭐⭐. Status: `[x]` done · `[~]` tried but not adopted (see note) · `[ ]` planned. See `ROADMAP.md` for the reasoning behind each item.
 
 ---
 
@@ -15,9 +15,12 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [x] Rank IC + calibration curve + long/short equity curves on the `/model` page
 - [x] **Search box** — navbar symbol/name autocomplete → detail page
 - [x] **Screen presets** — one-click quick screens (oversold, momentum leaders, AI top picks, …)
+- [x] **Saved screens** — save the current filter/sort under a name, reload or delete it
 - [x] **CSV export** — download current screener results
 - [x] **Light/dark theme toggle** — persisted, respects system default
-- [x] **API tests** — TestClient coverage for health/screener/meta/404
+- [x] **API tests** — TestClient coverage for health/screener/meta/search/screens/404
+- [x] **CI** — GitHub Actions runs backend pytest + frontend lint/build on every push
+- [~] **Sector-neutral ranks** — *tried, then reverted*: rank-within-sector features **reduced** out-of-sample rank IC (0.0303 → 0.0285) and long-short Sharpe (0.53 → 0.23), so they were not adopted. A good example of the walk-forward harness overruling intuition.
 
 ---
 
@@ -25,7 +28,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 - [ ] Fundamental + calendar features (P/E vs sector, margins, days-to-earnings) — **M** ⭐⭐⭐
 - [ ] Learning-to-rank objective (XGBoost `rank:ndcg`, per-date groups) — **M** ⭐⭐
-- [ ] Sector-neutral ranks (rank within sector, not just whole universe) — **S** ⭐⭐
+- [~] Sector-neutral ranks (rank within sector, not just whole universe) — **S** ⭐⭐ — *tried, reverted (reduced IC 0.0303→0.0285 and long-short Sharpe 0.53→0.23)*
 - [ ] Regime awareness (VIX/breadth features or per-regime models) — **M** ⭐⭐
 - [ ] Ensembling (blend XGBoost with a linear factor model) — **M** ⭐
 - [ ] Walk-forward hyperparameter tuning (Optuna, IC as objective) — **M** ⭐⭐
@@ -53,7 +56,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [x] Screen presets (built-in quick screens) — **S** ⭐⭐⭐
 - [x] CSV export of screener results — **S** ⭐
 - [x] Light/dark theme toggle — **S** ⭐
-- [ ] Saved screens (persist custom screens to a `saved_screens` table) — **S–M** ⭐⭐⭐
+- [x] Saved screens (persist custom screens to a `saved_screens` table) — **S–M** ⭐⭐⭐
 - [ ] Transactions instead of single lots (real FIFO/avg cost basis, realized P/L) — **M** ⭐⭐
 - [ ] Watchlist alerts (price/RSI/AI-score triggers in the daily refresh) — **M** ⭐⭐
 - [ ] User-facing backtester (backtest your own screen → equity curve) — **L** ⭐⭐⭐
@@ -65,7 +68,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [ ] Deploy (Alembic → Postgres → Railway/Render + cron refresh/retrain) — **M** ⭐⭐⭐
 - [ ] Auth (shared password, or users + JWT) — **M** ⭐⭐
 - [x] API tests — **S** ⭐⭐
-- [ ] CI (GitHub Actions: pytest + lint on every push) — **S** ⭐⭐
+- [x] CI (GitHub Actions: pytest + lint + build on every push) — **S** ⭐⭐
 - [ ] Structured logging + error tracking (Sentry) — **S** ⭐
 - [ ] Incremental/parallel refresh (async or multiprocessing downloads) — **M** ⭐
 

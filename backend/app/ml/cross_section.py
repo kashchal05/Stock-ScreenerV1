@@ -45,6 +45,10 @@ XS_FEATURE_LABELS = {
 
 # The model's full feature set = Stage-1 (per-symbol) + Stage-2 (cross-sectional).
 # This is the ordered list stored in the artifact and asserted at inference load.
+#
+# Note: sector-neutral ranks (rank within date+sector) were tried and REDUCED the
+# out-of-sample rank IC (0.0303 -> 0.0285) and long-short Sharpe (0.53 -> 0.23),
+# so they were not adopted. See docs/CHECKLIST.md.
 MODEL_FEATURE_COLUMNS = FEATURE_COLUMNS + XS_FEATURE_COLUMNS
 MODEL_FEATURE_LABELS = {**FEATURE_LABELS, **XS_FEATURE_LABELS}
 

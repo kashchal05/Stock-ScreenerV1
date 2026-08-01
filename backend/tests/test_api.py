@@ -86,3 +86,23 @@ def test_search_matches_symbol_and_name(client):
 
 def test_unknown_stock_404(client):
     assert client.get("/api/stocks/NOTREAL").status_code == 404
+
+
+def test_saved_screens_crud(client):
+    assert client.get("/api/screens").json() == []
+
+    created = client.post("/api/screens", json={"name": "Oversold", "query": "max_rsi=30"})
+    assert created.status_code == 201
+    screen_id = created.json()["id"]
+
+    listed = client.get("/api/screens").json()
+    assert len(listed) == 1 and listed[0]["name"] == "Oversold"
+
+    # Saving the same name overwrites the query (idempotent)
+    again = client.post("/api/screens", json={"name": "Oversold", "query": "min_rsi=70"})
+    assert again.json()["query"] == "min_rsi=70"
+    assert len(client.get("/api/screens").json()) == 1
+
+    assert client.delete(f"/api/screens/{screen_id}").status_code == 204
+    assert client.get("/api/screens").json() == []
+    assert client.delete("/api/screens/999").status_code == 404

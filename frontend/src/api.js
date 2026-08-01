@@ -35,6 +35,14 @@ export const deleteWatchlistItem = (id) =>
 export const searchTickers = (q) =>
   client.get('/search', { params: { q } }).then((r) => r.data)
 
+export const fetchSavedScreens = () =>
+  client.get('/screens').then((r) => r.data)
+
+export const saveScreen = (name, query) =>
+  client.post('/screens', { name, query }).then((r) => r.data)
+
+export const deleteSavedScreen = (id) => client.delete(`/screens/${id}`)
+
 export const fetchMeta = () => client.get('/meta').then((r) => r.data)
 
 export const triggerRefresh = () =>

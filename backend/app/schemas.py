@@ -169,6 +169,20 @@ class RefreshStatus(BaseModel):
     detail: str | None = None
 
 
+class SavedScreenIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    query: str = Field(max_length=1000)
+
+
+class SavedScreenOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    query: str
+    created_at: datetime
+
+
 class MetaOut(BaseModel):
     universe_size: int
     sectors: list[str]

@@ -119,6 +119,12 @@ a { color: var(--accent); text-decoration: none; }
   margin-bottom: 10px;
 }
 
+/* Saved screens */
+.saved-screens { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+.saved-chip { display: inline-flex; align-items: center; gap: 8px; }
+.saved-chip .del { color: var(--text-dim); font-size: 11px; }
+.saved-chip .del:hover { color: var(--neg); }
+
 /* Panels & cards */
 .panel {
   background: var(--bg-panel);

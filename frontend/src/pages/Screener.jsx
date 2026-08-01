@@ -4,6 +4,7 @@ import { fetchScreener } from '../api.js'
 import FilterPanel from '../components/FilterPanel.jsx'
 import ResultsTable from '../components/ResultsTable.jsx'
 import ScreenerPresets from '../components/ScreenerPresets.jsx'
+import SavedScreens from '../components/SavedScreens.jsx'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import ErrorBanner from '../components/ErrorBanner.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -58,6 +59,10 @@ export default function Screener() {
     setSearchParams({ ...params, offset: String(Math.max(0, nextOffset)) })
   }
 
+  const loadScreen = (query) => {
+    setSearchParams(new URLSearchParams(query))
+  }
+
   return (
     <div>
       <h1>Screener</h1>
@@ -65,6 +70,7 @@ export default function Screener() {
         Filter the S&P 500 by price, momentum, valuation, and AI trend score.
       </p>
       <ScreenerPresets onApply={applyFilters} />
+      <SavedScreens currentQuery={paramsKey} onLoad={loadScreen} />
       <FilterPanel key={paramsKey} params={params} onApply={applyFilters} />
       <ErrorBanner error={error} />
       {loading ? (

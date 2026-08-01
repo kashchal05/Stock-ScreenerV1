@@ -108,3 +108,12 @@ class RefreshRun(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
     detail: Mapped[str | None] = mapped_column(Text)
+
+
+class SavedScreen(Base):
+    __tablename__ = "saved_screens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True)
+    query: Mapped[str] = mapped_column(Text)  # URL query string, e.g. "min_rsi=70&sector=Energy"
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
