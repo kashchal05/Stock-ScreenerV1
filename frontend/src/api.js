@@ -43,6 +43,9 @@ export const saveScreen = (name, query) =>
 
 export const deleteSavedScreen = (id) => client.delete(`/screens/${id}`)
 
+export const fetchTrackRecord = () =>
+  client.get('/track-record').then((r) => r.data)
+
 export const fetchMeta = () => client.get('/meta').then((r) => r.data)
 
 export const triggerRefresh = () =>

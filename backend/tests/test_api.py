@@ -88,6 +88,12 @@ def test_unknown_stock_404(client):
     assert client.get("/api/stocks/NOTREAL").status_code == 404
 
 
+def test_track_record_empty(client):
+    r = client.get("/api/track-record")
+    assert r.status_code == 200
+    assert r.json()["available"] is False
+
+
 def test_saved_screens_crud(client):
     assert client.get("/api/screens").json() == []
 

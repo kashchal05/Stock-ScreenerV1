@@ -59,6 +59,8 @@ export default function Navbar() {
       <span className="brand">📈 Stock Screener</span>
       <NavLink to="/" end>Screener</NavLink>
       <NavLink to="/watchlist">Watchlist</NavLink>
+      <NavLink to="/compare">Compare</NavLink>
+      <NavLink to="/track-record">Track record</NavLink>
       <NavLink to="/model">AI Model</NavLink>
       <SearchBox />
       <span className="spacer" />

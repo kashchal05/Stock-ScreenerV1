@@ -183,6 +183,23 @@ class SavedScreenOut(BaseModel):
     created_at: datetime
 
 
+class TrackRecordOut(BaseModel):
+    available: bool
+    model_version: str | None = None
+    horizon_days: int | None = None
+    top_k: int | None = None
+    n_periods: int | None = None
+    n_picks: int | None = None
+    n_settled: int | None = None
+    avg_pick_return: float | None = None
+    avg_spy_return: float | None = None
+    edge: float | None = None
+    hit_rate: float | None = None
+    start: str | None = None
+    end: str | None = None
+    periods: list[dict] = []
+
+
 class MetaOut(BaseModel):
     universe_size: int
     sectors: list[str]

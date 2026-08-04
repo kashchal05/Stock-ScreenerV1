@@ -20,6 +20,8 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [x] **Light/dark theme toggle** — persisted, respects system default
 - [x] **API tests** — TestClient coverage for health/screener/meta/search/screens/404
 - [x] **CI** — GitHub Actions runs backend pytest + frontend lint/build on every push
+- [x] **Model track record ("paper trading")** — top-K picks per rebalance with realized returns; seeded from leak-free walk-forward, live picks accrue on refresh. Out-of-sample: **+3.4%/pick vs SPY +1.8%, +1.6% edge, 58.8% hit rate**
+- [x] **Compare view** — overlay up to 4 stocks' normalized price
 - [~] **Sector-neutral ranks** — *tried, then reverted*: rank-within-sector features **reduced** out-of-sample rank IC (0.0303 → 0.0285) and long-short Sharpe (0.53 → 0.23), so they were not adopted. A good example of the walk-forward harness overruling intuition.
 
 ---
@@ -60,7 +62,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [ ] Transactions instead of single lots (real FIFO/avg cost basis, realized P/L) — **M** ⭐⭐
 - [ ] Watchlist alerts (price/RSI/AI-score triggers in the daily refresh) — **M** ⭐⭐
 - [ ] User-facing backtester (backtest your own screen → equity curve) — **L** ⭐⭐⭐
-- [ ] Compare view (overlay 2–4 stocks' normalized price) — **M** ⭐
+- [x] Compare view (overlay 2–4 stocks' normalized price) — **M** ⭐
 - [ ] Candlestick charts — **M** ⭐
 
 ## 5. Engineering, infra & deployment
@@ -74,7 +76,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 ## 6. Ambitious / moonshot
 
-- [ ] Paper-trading loop (record live picks, track actual forward performance) — **M** ⭐⭐⭐
+- [x] Paper-trading loop (record live picks, track actual forward performance) — **M** ⭐⭐⭐ — *see the Track record page; seeded from walk-forward, live picks accrue on refresh*
 - [ ] Portfolio optimizer (mean-variance / risk-parity sizing with constraints) — **L** ⭐⭐
 - [ ] LLM research assistant ("why does the model like NVDA?", filings/news summary) — **L** ⭐⭐
 - [ ] Multi-asset (ETFs, crypto, intraday) — **XL** ⭐
@@ -83,9 +85,9 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 ## Suggested next order
 
-1. Paper-trading loop — cheap, and the honest proof-of-edge everything is judged against.
-2. Deploy + saved screens — makes it a real, usable product.
-3. Fundamental features + sector-neutral ranks — most credible way to raise IC.
+1. ~~Paper-trading loop~~ ✅ done — the honest proof-of-edge is now on the Track record page.
+2. Deploy — make it a real, usable product on a live URL.
+3. Fundamental features — most credible remaining way to raise IC (momentum-orthogonal signal).
 4. Kill survivorship bias + point-in-time fundamentals — the integrity upgrade (expect numbers to drop honestly).
 5. User-facing backtester — the feature that makes this stand out.
 

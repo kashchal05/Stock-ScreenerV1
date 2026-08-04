@@ -39,6 +39,13 @@ def execute_full_refresh(run_id: int) -> None:
         except Exception:
             logger.exception("AI scoring failed; snapshots remain usable without scores")
             details.append("AI scoring skipped (see logs)")
+        try:
+            from app.services.picks import record_live_picks
+
+            details.append(record_live_picks(db))
+        except Exception:
+            logger.exception("Live pick recording failed")
+            details.append("live picks skipped (see logs)")
         _finish(db, run_id, "succeeded", "; ".join(details))
     except Exception as exc:
         logger.exception("Refresh run %d failed", run_id)

@@ -34,6 +34,11 @@ def main() -> None:
 
         print("Scoring snapshots with active model (if any)...")
         print(" ", score_all_snapshots(db))
+
+        from app.services.picks import record_live_picks
+
+        print("Recording live picks for the track record...")
+        print(" ", record_live_picks(db))
     finally:
         db.close()
 

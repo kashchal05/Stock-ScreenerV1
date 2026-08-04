@@ -126,6 +126,7 @@ Handlers are deliberately plain `def` (not `async def`): FastAPI runs them in a 
 - **`scripts/seed_universe.py`** — one-time: load the S&P 500 list.
 - **`scripts/refresh_data.py`** — CLI version of the full refresh; this is what a cron job would run in production.
 - **`scripts/train_model.py`** — dataset → walk-forward eval (prints the fold table) → backtest → save artifact → re-score snapshots. Prints a warning if AUC looks suspiciously high (that means leakage, not brilliance).
+- **`scripts/seed_picks.py`** — seeds the model track record ("paper trading") from the leak-free walk-forward predictions: logs the top-K picks per rebalance date with their realized forward returns into `pick_log`. Live picks accrue on each refresh via `services/picks.py` (`record_live_picks` / `settle_open_picks`), served at `GET /api/track-record` and shown on the Track record page.
 - **`tests/test_features.py`** — indicator math vs hand-computed values; RSI bounds; momentum-factor math; **the no-lookahead property test**.
 - **`tests/test_labeling.py`** — label alignment and the unlabeled tail.
 - **`tests/test_cross_section.py`** — cross-sectional label balance (~50%), the within-date rank no-leakage property, rank-IC on a synthetic signal, and calibration monotonicity.

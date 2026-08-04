@@ -117,3 +117,27 @@ class SavedScreen(Base):
     name: Mapped[str] = mapped_column(String, unique=True)
     query: Mapped[str] = mapped_column(Text)  # URL query string, e.g. "min_rsi=70&sector=Energy"
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class PickLog(Base):
+    """Model track record: the top-K picks made on each rebalance date, and how
+    they actually did. `source` is 'backtest' (seeded from leak-free walk-forward
+    predictions) or 'live' (recorded going forward). realized_return is filled once
+    the horizon has elapsed."""
+
+    __tablename__ = "pick_log"
+    __table_args__ = (
+        UniqueConstraint("as_of_date", "symbol", "source", name="uq_pick_log_date_symbol_source"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    as_of_date: Mapped[date] = mapped_column(Date, index=True)
+    symbol: Mapped[str] = mapped_column(ForeignKey("tickers.symbol"))
+    prob: Mapped[float] = mapped_column(Float)
+    rank: Mapped[int] = mapped_column(Integer)
+    horizon_days: Mapped[int] = mapped_column(Integer)
+    realized_return: Mapped[float | None] = mapped_column(Float)
+    spy_return: Mapped[float | None] = mapped_column(Float)
+    model_version: Mapped[str | None] = mapped_column(String)
+    source: Mapped[str] = mapped_column(String, default="backtest")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
