@@ -140,6 +140,21 @@ def get_track_record(db: Session, recent_periods: int = 12) -> dict:
         sum(1 for p in closed if p.realized_return > 0) / len(closed) if closed else None
     )
 
+    # Settled periods, chronological, for the equity curve and significance test.
+    settled_periods = [p for p in periods if p["settled"]]
+    equity_curve, strat, spy = [], 1.0, 1.0
+    period_edges = []
+    for p in settled_periods:
+        strat *= 1 + (p["avg_return"] or 0.0)
+        spy *= 1 + (p["spy_return"] or 0.0)
+        equity_curve.append({"date": p["date"], "strategy": strat, "spy": spy})
+        if p["avg_return"] is not None and p["spy_return"] is not None:
+            period_edges.append(p["avg_return"] - p["spy_return"])
+
+    from app.ml.stats import bootstrap_mean_ci
+
+    significance = bootstrap_mean_ci(period_edges)
+
     return {
         "available": True,
         "model_version": picks[-1].model_version,
@@ -152,6 +167,8 @@ def get_track_record(db: Session, recent_periods: int = 12) -> dict:
         "avg_spy_return": avg_spy,
         "edge": (avg_return - avg_spy) if (avg_return is not None and avg_spy is not None) else None,
         "hit_rate": hit_rate,
+        "significance": significance,  # bootstrap CI + p-value + t-stat on per-period edge
+        "equity_curve": equity_curve,
         "start": periods[0]["date"],
         "end": periods[-1]["date"],
         "periods": periods[-recent_periods:][::-1],  # most recent first

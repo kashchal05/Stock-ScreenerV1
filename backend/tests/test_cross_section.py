@@ -88,6 +88,22 @@ def test_rank_ic_detects_signal():
     assert abs(ic_noise) < 0.5
 
 
+def test_bootstrap_ci_detects_signal_and_noise():
+    from app.ml.stats import bootstrap_mean_ci, probabilistic_sharpe_ratio
+
+    rng = np.random.default_rng(0)
+    strong = list(rng.normal(0.02, 0.01, 40))  # clearly positive
+    ci = bootstrap_mean_ci(strong)
+    assert ci["ci_low"] > 0 and ci["p_value"] < 0.05
+
+    noise = list(rng.normal(0.0, 0.05, 40))  # centered on zero
+    ci_noise = bootstrap_mean_ci(noise)
+    assert ci_noise["ci_low"] < 0 < ci_noise["ci_high"]
+
+    psr = probabilistic_sharpe_ratio(strong)
+    assert psr["psr"] > 0.9  # strong positive returns -> high PSR
+
+
 def test_calibration_is_monotonic():
     rng = np.random.default_rng(2)
     prob = rng.uniform(0, 1, 5000)

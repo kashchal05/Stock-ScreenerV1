@@ -195,6 +195,8 @@ class TrackRecordOut(BaseModel):
     avg_spy_return: float | None = None
     edge: float | None = None
     hit_rate: float | None = None
+    significance: dict | None = None
+    equity_curve: list[dict] = []
     start: str | None = None
     end: str | None = None
     periods: list[dict] = []

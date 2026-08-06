@@ -22,6 +22,8 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [x] **CI** — GitHub Actions runs backend pytest + frontend lint/build on every push
 - [x] **Model track record ("paper trading")** — top-K picks per rebalance with realized returns; seeded from leak-free walk-forward, live picks accrue on refresh. Out-of-sample: **+3.4%/pick vs SPY +1.8%, +1.6% edge, 58.8% hit rate**
 - [x] **Compare view** — overlay up to 4 stocks' normalized price
+- [x] **Track record rigor** — cumulative equity curve + bootstrap significance test on the edge (95% CI, p-value, verdict)
+- [x] **Probabilistic Sharpe ratio** on the AI Model report (prob. true long-short Sharpe > 0)
 - [~] **Sector-neutral ranks** — *tried, then reverted*: rank-within-sector features **reduced** out-of-sample rank IC (0.0303 → 0.0285) and long-short Sharpe (0.53 → 0.23), so they were not adopted. A good example of the walk-forward harness overruling intuition.
 
 ---
@@ -47,7 +49,9 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 ## 3. Backtesting & evaluation rigor
 
 - [ ] Overlapping portfolios (rebalance daily with 1/N capital) — **M** ⭐⭐
-- [ ] Deflated Sharpe ratio + probability of backtest overfitting — **M** ⭐⭐
+- [x] Probabilistic Sharpe ratio (prob. true Sharpe > 0) — on `/model` — **S** ⭐⭐ · deflated Sharpe (across trials) still TODO
+- [x] Bootstrap significance test on the strategy edge — on `/track-record` — **S** ⭐⭐
+- [ ] Full backtester / simulator — **see `BACKTESTER_PLAN.md`** — **L** ⭐⭐⭐
 - [ ] Purged & combinatorial cross-validation — **L** ⭐
 - [ ] Turnover-based / liquidity-tiered transaction costs + borrow cost — **M** ⭐
 - [ ] Experiment tracking (MLflow / runs table for every config's IC/Sharpe) — **M** ⭐⭐

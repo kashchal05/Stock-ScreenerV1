@@ -83,6 +83,14 @@ export default function ModelReport() {
           <div className="label">Long-only Sharpe (net)</div>
           <div className="value">{fmtNumber(lo.sharpe, 2)}</div>
         </div>
+        {bt.long_short_psr?.psr != null && (
+          <div className="card" title="Probability the true long-short Sharpe is above 0, adjusting for sample length, skew, and kurtosis.">
+            <div className="label">Prob. Sharpe &gt; 0 (PSR)</div>
+            <div className={`value ${bt.long_short_psr.psr >= 0.95 ? 'pos' : ''}`}>
+              {(bt.long_short_psr.psr * 100).toFixed(0)}%
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="panel">

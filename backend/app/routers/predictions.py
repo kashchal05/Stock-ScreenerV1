@@ -34,6 +34,17 @@ def model_report(db: Session = Depends(get_db)):
     if calib_path.exists():
         calibration = json.loads(calib_path.read_text()) or None
 
+    backtest = json.loads(record.backtest_json) if record.backtest_json else None
+    # Probabilistic Sharpe ratio on the market-neutral long-short curve: the
+    # probability its true Sharpe is above 0, adjusted for sample length/skew/kurtosis.
+    if backtest and backtest.get("equity_curve"):
+        from app.ml.stats import probabilistic_sharpe_ratio
+
+        ls = [pt.get("long_short") for pt in backtest["equity_curve"] if pt.get("long_short")]
+        rets = [ls[i] / ls[i - 1] - 1 for i in range(1, len(ls))]
+        if rets:
+            backtest["long_short_psr"] = probabilistic_sharpe_ratio(rets)
+
     return ModelReportOut(
         model_available=True,
         version=record.version,
@@ -44,7 +55,7 @@ def model_report(db: Session = Depends(get_db)):
         train_end=record.train_end,
         feature_count=record.feature_count,
         metrics=json.loads(record.metrics_json) if record.metrics_json else None,
-        backtest=json.loads(record.backtest_json) if record.backtest_json else None,
+        backtest=backtest,
         calibration=calibration,
         caveats=CAVEATS,
     )

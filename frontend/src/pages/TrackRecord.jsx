@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { fetchTrackRecord } from '../api.js'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import EmptyState from '../components/EmptyState.jsx'
-import { fmtPct, changeClass } from '../utils/format.js'
+import { fmtPct, fmtNumber, changeClass } from '../utils/format.js'
 
 export default function TrackRecord() {
   const [data, setData] = useState(null)
@@ -26,6 +27,8 @@ export default function TrackRecord() {
       </div>
     )
   }
+
+  const sig = data.significance
 
   return (
     <div>
@@ -67,6 +70,56 @@ export default function TrackRecord() {
           </div>
         </div>
       </div>
+
+      {sig?.mean != null && (
+        <div className="panel">
+          <h2>Is the edge real, or luck?</h2>
+          <p style={{ margin: '0 0 8px' }}>
+            Bootstrapping the per-rebalance edge over SPY ({sig.n} periods): mean{' '}
+            <strong className={changeClass(sig.mean)}>{fmtPct(sig.mean)}</strong> per period,
+            95% CI [{fmtPct(sig.ci_low)}, {fmtPct(sig.ci_high)}], p = {fmtNumber(sig.p_value, 3)}
+            {sig.t_stat != null ? `, t = ${fmtNumber(sig.t_stat, 2)}` : ''}.
+          </p>
+          <p style={{ margin: 0, color: sig.ci_low > 0 ? 'var(--pos)' : 'var(--text-dim)' }}>
+            {sig.ci_low > 0
+              ? '✓ Statistically significant at the 5% level — the edge is unlikely to be pure luck (though the lower bound is close to zero, so stay humble).'
+              : '✗ Not statistically distinguishable from luck at the 5% level — treat the edge as unproven.'}
+          </p>
+        </div>
+      )}
+
+      {data.equity_curve?.length > 0 && (
+        <div className="panel">
+          <h2>Cumulative performance (equal-weight, no costs)</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data.equity_curve} margin={{ top: 4, right: 8, bottom: 0, left: 4 }}>
+              <XAxis
+                dataKey="date"
+                tick={{ fill: 'var(--text-dim)', fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: 'var(--border)' }}
+                minTickGap={50}
+              />
+              <YAxis
+                tick={{ fill: 'var(--text-dim)', fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v.toFixed(1)}x`}
+                domain={['auto', 'auto']}
+                width={46}
+              />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8 }}
+                labelStyle={{ color: 'var(--text-dim)' }}
+                formatter={(v, name) => [`${v.toFixed(3)}x`, name === 'strategy' ? 'Model picks' : 'SPY']}
+              />
+              <Legend formatter={(v) => (v === 'strategy' ? 'Model picks' : 'SPY')} />
+              <Line type="monotone" dataKey="strategy" stroke="var(--accent)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="spy" stroke="var(--text-dim)" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="panel">
         <h2>Recent rebalances</h2>
