@@ -6,6 +6,7 @@ import Watchlist from './pages/Watchlist.jsx'
 import ModelReport from './pages/ModelReport.jsx'
 import TrackRecord from './pages/TrackRecord.jsx'
 import Compare from './pages/Compare.jsx'
+import Backtest from './pages/Backtest.jsx'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/stocks/:symbol" element={<StockDetail />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/compare" element={<Compare />} />
+          <Route path="/backtest" element={<Backtest />} />
           <Route path="/track-record" element={<TrackRecord />} />
           <Route path="/model" element={<ModelReport />} />
         </Routes>

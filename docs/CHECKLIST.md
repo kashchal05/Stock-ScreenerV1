@@ -24,6 +24,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [x] **Compare view** — overlay up to 4 stocks' normalized price
 - [x] **Track record rigor** — cumulative equity curve + bootstrap significance test on the edge (95% CI, p-value, verdict)
 - [x] **Probabilistic Sharpe ratio** on the AI Model report (prob. true long-short Sharpe > 0)
+- [x] **Backtest lab (Phase 1)** — configure a rule-based strategy (signal, top-K, rebalance, costs), simulate over history, get equity curve + full metrics (CAGR/Sharpe/Sortino/maxDD/Calmar/turnover/IR) + bootstrap significance; auto-flags implausibly strong (survivorship-inflated) results
 - [~] **Sector-neutral ranks** — *tried, then reverted*: rank-within-sector features **reduced** out-of-sample rank IC (0.0303 → 0.0285) and long-short Sharpe (0.53 → 0.23), so they were not adopted. A good example of the walk-forward harness overruling intuition.
 
 ---
@@ -51,7 +52,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 - [ ] Overlapping portfolios (rebalance daily with 1/N capital) — **M** ⭐⭐
 - [x] Probabilistic Sharpe ratio (prob. true Sharpe > 0) — on `/model` — **S** ⭐⭐ · deflated Sharpe (across trials) still TODO
 - [x] Bootstrap significance test on the strategy edge — on `/track-record` — **S** ⭐⭐
-- [ ] Full backtester / simulator — **see `BACKTESTER_PLAN.md`** — **L** ⭐⭐⭐
+- [~] Full backtester / simulator — **see `BACKTESTER_PLAN.md`** — **L** ⭐⭐⭐ — *Phase 1 (rule-based lab) shipped; Phases 2–5 (AI/saved-screen integration, deflated Sharpe across runs, save/compare, per-rebalance retraining) still open*
 - [ ] Purged & combinatorial cross-validation — **L** ⭐
 - [ ] Turnover-based / liquidity-tiered transaction costs + borrow cost — **M** ⭐
 - [ ] Experiment tracking (MLflow / runs table for every config's IC/Sharpe) — **M** ⭐⭐

@@ -46,6 +46,12 @@ export const deleteSavedScreen = (id) => client.delete(`/screens/${id}`)
 export const fetchTrackRecord = () =>
   client.get('/track-record').then((r) => r.data)
 
+export const fetchBacktestSignals = () =>
+  client.get('/backtest/signals').then((r) => r.data)
+
+export const runBacktest = (spec) =>
+  client.post('/backtest', spec).then((r) => r.data)
+
 export const fetchMeta = () => client.get('/meta').then((r) => r.data)
 
 export const triggerRefresh = () =>
