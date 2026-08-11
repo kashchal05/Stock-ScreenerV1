@@ -10,7 +10,10 @@ Think of it as a personal, self-hosted version of a Finviz/Yahoo Finance screene
 
 | Page | URL | What it does |
 |---|---|---|
+| **Build a plan** | `/plan` | **The headline workflow.** Enter a dollar amount and the app reads today's market regime (SPY trend, volatility, breadth), chooses a strategy (how many positions, how much cash), picks the top AI-scored stocks with sector diversification, sizes each in whole shares, gives you a dated buy list, and shows what its own out-of-sample backtest suggests to expect. Illustrative, not advice. |
 | **Screener** | `/` | Filter all 503 S&P 500 stocks by price, volume, market cap, P/E, RSI, % change (1d/1w/1m/YTD), distance from 52-week high, sector, and AI probability. Click any column header to sort. Click a row to open the stock. Filters live in the URL, so you can bookmark or share a screen. |
+| **Backtest lab** | `/backtest` | Test any rule-based strategy (momentum, RSI, trend, low-vol…) over history: equity curve vs SPY, full metrics (CAGR/Sharpe/Sortino/maxDD), and a significance test. Auto-flags results that look too good (survivorship bias). |
+| **Track record** | `/track-record` | The model's actual out-of-sample picks per rebalance, a cumulative curve vs SPY, and a bootstrap test of whether the edge is real. |
 | **Stock detail** | `/stocks/AAPL` | Price + volume chart (1M–5Y tabs), stat cards (market cap, P/E, RSI, returns…), a technical-indicator panel with bullish/bearish tags, and the **AI prediction card**: the model's probability the stock is higher in 10 trading days, with the top-5 signals pushing it up or down. |
 | **Watchlist** | `/watchlist` | Add stocks with an optional buy price and quantity. Shows current price, market value, gain/loss in $ and %, 1-day change, and the AI score for each holding, plus portfolio totals. |
 | **AI Model** | `/model` | The model's report card: ROC-AUC, accuracy vs the base rate, per-fold results, a backtest equity curve vs simply buying SPY, and an honest-limitations box. |

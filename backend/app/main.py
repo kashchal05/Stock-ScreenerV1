@@ -8,6 +8,7 @@ from app.database import Base, engine
 from app.routers import (
     admin,
     backtest,
+    plan,
     predictions,
     screener,
     screens,
@@ -43,4 +44,5 @@ app.include_router(predictions.router)
 app.include_router(watchlist.router)
 app.include_router(track_record.router)
 app.include_router(backtest.router)
+app.include_router(plan.router)
 app.include_router(admin.router)

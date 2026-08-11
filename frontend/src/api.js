@@ -52,6 +52,9 @@ export const fetchBacktestSignals = () =>
 export const runBacktest = (spec) =>
   client.post('/backtest', spec).then((r) => r.data)
 
+export const buildPlan = (capital, numPositions) =>
+  client.post('/plan', { capital, num_positions: numPositions || null }).then((r) => r.data)
+
 export const fetchMeta = () => client.get('/meta').then((r) => r.data)
 
 export const triggerRefresh = () =>

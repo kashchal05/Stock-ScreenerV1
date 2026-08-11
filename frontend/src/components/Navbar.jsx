@@ -58,6 +58,7 @@ export default function Navbar() {
     <nav className="navbar">
       <span className="brand">📈 Stock Screener</span>
       <NavLink to="/" end>Screener</NavLink>
+      <NavLink to="/plan">Plan</NavLink>
       <NavLink to="/watchlist">Watchlist</NavLink>
       <NavLink to="/compare">Compare</NavLink>
       <NavLink to="/backtest">Backtest</NavLink>

@@ -6,6 +6,8 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 ## ✅ Already done
 
+- [x] **Build-a-Plan (capstone)** — enter a dollar amount → the app reads the market regime (SPY trend, volatility, breadth), picks the strategy (position count + cash by regime), selects the top AI names with sector diversification, sizes each in whole shares, and shows the backtested expectation. The "run it with money, get a dated buy list" workflow.
+
 - [x] Cross-sectional target (predict beating the S&P 500 median, not absolute up/down)
 - [x] Momentum factor features (12-1, 6-1, risk-adjusted momentum)
 - [x] Within-date cross-sectional rank features (skew-safe, shared train/serve)

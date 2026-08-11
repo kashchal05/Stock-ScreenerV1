@@ -7,6 +7,7 @@ import ModelReport from './pages/ModelReport.jsx'
 import TrackRecord from './pages/TrackRecord.jsx'
 import Compare from './pages/Compare.jsx'
 import Backtest from './pages/Backtest.jsx'
+import Plan from './pages/Plan.jsx'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <main className="page">
         <Routes>
           <Route path="/" element={<Screener />} />
+          <Route path="/plan" element={<Plan />} />
           <Route path="/stocks/:symbol" element={<StockDetail />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/compare" element={<Compare />} />
