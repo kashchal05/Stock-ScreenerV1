@@ -68,6 +68,39 @@ def test_costs_reduce_return():
     assert costly["metrics"]["avg_turnover"] > 0
 
 
+def test_ai_signal_panel_pivots_predictions():
+    from datetime import date as _date
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.backtest.engine import _ai_signal_panel
+    from app.database import Base
+    from app.models import WfPrediction
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    db = sessionmaker(bind=engine)()
+    db.add_all([
+        WfPrediction(date=_date(2025, 1, 2), symbol="AAA", prob=0.6),
+        WfPrediction(date=_date(2025, 1, 2), symbol="BBB", prob=0.4),
+        WfPrediction(date=_date(2025, 1, 3), symbol="AAA", prob=0.55),
+    ])
+    db.commit()
+
+    panel = _ai_signal_panel(db, cache_key="test-key-1")
+    assert list(panel.columns) == ["AAA", "BBB"]
+    assert panel.loc[panel.index[0], "AAA"] == pytest.approx(0.6)
+
+    # empty (but valid) DB -> empty panel
+    empty_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(empty_engine)
+    empty = _ai_signal_panel(sessionmaker(bind=empty_engine)(), cache_key="empty-key")
+    assert empty.empty
+    db.close()
+
+
 def test_selection_picks_top_signal():
     n = 260
     dates = _dates(n)

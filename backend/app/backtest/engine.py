@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from app.backtest.metrics import compute_metrics
-from app.backtest.spec import SIGNAL_CHOICES, StrategySpec
+from app.backtest.spec import AI_SIGNAL, SIGNAL_CHOICES, StrategySpec
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +73,27 @@ def _signal_panel(bars: dict, spy_close, feature: str, cache_key) -> pd.DataFram
         feats = compute_features(sym_bars, spy_close=spy_close)
         cols[symbol] = feats[feature]
     panel = pd.DataFrame(cols).sort_index()
+    with _lock:
+        _cache["signals"][ck] = panel
+    return panel
+
+
+def _ai_signal_panel(db, cache_key) -> pd.DataFrame:
+    """Out-of-sample walk-forward model scores, dates x symbols (from wf_predictions).
+    Cached like rule signals. Empty if the panel hasn't been seeded."""
+    from app.models import WfPrediction
+
+    ck = (cache_key, AI_SIGNAL)
+    with _lock:
+        if ck in _cache["signals"]:
+            return _cache["signals"][ck]
+
+    rows = db.query(WfPrediction.date, WfPrediction.symbol, WfPrediction.prob).all()
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows, columns=["date", "symbol", "prob"])
+    df["date"] = pd.to_datetime(df["date"])
+    panel = df.pivot(index="date", columns="symbol", values="prob").sort_index()
     with _lock:
         _cache["signals"][ck] = panel
     return panel
@@ -194,8 +215,17 @@ def run_backtest(db, spec: StrategySpec) -> dict:
     if BENCHMARK_SYMBOL not in closes.columns:
         return {"error": "benchmark data not available — run a data refresh"}
 
-    spy_close = bars.get(BENCHMARK_SYMBOL)
-    spy_series = spy_close["close"] if spy_close is not None else None
-    signal = _signal_panel(bars, spy_series, spec.signal, _cache["key"])
+    if spec.signal == AI_SIGNAL:
+        signal = _ai_signal_panel(db, _cache["key"])
+        if signal.empty:
+            return {"error": "no walk-forward predictions yet — run scripts/seed_picks.py"}
+    else:
+        spy_close = bars.get(BENCHMARK_SYMBOL)
+        spy_series = spy_close["close"] if spy_close is not None else None
+        signal = _signal_panel(bars, spy_series, spec.signal, _cache["key"])
+
     universe_closes = closes.drop(columns=[BENCHMARK_SYMBOL], errors="ignore")
-    return simulate(universe_closes, signal, closes[BENCHMARK_SYMBOL], spec)
+    result = simulate(universe_closes, signal, closes[BENCHMARK_SYMBOL], spec)
+    if isinstance(result, dict) and result.get("ok"):
+        result["out_of_sample"] = spec.signal == AI_SIGNAL
+    return result

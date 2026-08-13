@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { fetchBacktestSignals, runBacktest } from '../api.js'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
@@ -15,29 +16,28 @@ const DEFAULT_SPEC = {
 }
 
 export default function Backtest() {
+  const [searchParams] = useSearchParams()
   const [signals, setSignals] = useState([])
-  const [spec, setSpec] = useState(DEFAULT_SPEC)
+  const [spec, setSpec] = useState(() => {
+    const preset = searchParams.get('signal')
+    return preset ? { ...DEFAULT_SPEC, signal: preset } : DEFAULT_SPEC
+  })
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const autoRan = useRef(false)
 
-  useEffect(() => {
-    fetchBacktestSignals().then(setSignals).catch(() => {})
-  }, [])
-
-  const set = (key, value) => setSpec((s) => ({ ...s, [key]: value }))
-
-  const run = async (e) => {
-    e?.preventDefault()
+  // Defined before the effect so the auto-run can call it.
+  const runSpec = async (raw) => {
     setLoading(true)
     setError(null)
     try {
       const payload = {
-        ...spec,
-        top_k: Number(spec.top_k),
-        rebalance_days: Number(spec.rebalance_days),
-        costs_bps: Number(spec.costs_bps),
-        capital: Number(spec.capital),
+        ...raw,
+        top_k: Number(raw.top_k),
+        rebalance_days: Number(raw.rebalance_days),
+        costs_bps: Number(raw.costs_bps),
+        capital: Number(raw.capital),
       }
       setResult(await runBacktest(payload))
     } catch (err) {
@@ -46,6 +46,29 @@ export default function Backtest() {
     } finally {
       setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    fetchBacktestSignals().then((list) => {
+      setSignals(list)
+      const chosen = list.find((s) => s.value === searchParams.get('signal'))
+      if (chosen) {
+        const preset = { ...DEFAULT_SPEC, signal: chosen.value, direction: chosen.default_direction }
+        setSpec(preset)
+        // Arriving with a preset (e.g. "backtest this strategy") auto-runs once.
+        if (!autoRan.current) {
+          autoRan.current = true
+          runSpec(preset)
+        }
+      }
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const set = (key, value) => setSpec((s) => ({ ...s, [key]: value }))
+  const run = (e) => {
+    e?.preventDefault()
+    runSpec(spec)
   }
 
   const m = result?.metrics
@@ -106,6 +129,13 @@ export default function Backtest() {
 
       {result && !loading && (
         <>
+          {result.out_of_sample && (
+            <div className="panel" style={{ borderColor: 'var(--pos)', background: 'rgba(46,204,113,0.08)' }}>
+              ✓ <strong>Out-of-sample (leak-free):</strong> this backtests the AI model using only
+              walk-forward predictions — each pick came from a model trained solely on prior data.
+              It covers the walk-forward window ({result.start} → {result.end}) only.
+            </div>
+          )}
           {result.warnings?.map((w, i) => (
             <div key={i} className="error-banner" style={{ background: 'rgba(241,196,15,0.12)', borderColor: 'var(--warn)', color: 'var(--warn)' }}>
               ⚠ {w}

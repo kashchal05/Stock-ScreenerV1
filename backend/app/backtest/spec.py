@@ -2,11 +2,15 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# Rule-based signals available in Phase 1. Each maps to a column produced by
-# app/ml/features.compute_features, plus the direction that is usually interesting
-# ("top" = highest values, "bottom" = lowest). All are point-in-time (rolling/shift
-# only), so ranking on them at date t uses only data up to t — no lookahead.
+# Signals available in the Backtest lab. Rule signals map to a column produced by
+# app/ml/features.compute_features (point-in-time, rolling/shift only). The special
+# "ai_walkforward" signal ranks by the model's leak-free out-of-sample score (stored
+# in wf_predictions), so you can backtest the actual algorithm honestly — it only
+# covers the walk-forward window (roughly the last ~2.5 years).
+AI_SIGNAL = "ai_walkforward"
+
 SIGNAL_CHOICES: dict[str, dict] = {
+    "ai_walkforward": {"label": "AI model (out-of-sample)", "default_direction": "top"},
     "mom_12_1": {"label": "12-1 month momentum", "default_direction": "top"},
     "ret_63d": {"label": "3-month return", "default_direction": "top"},
     "ret_21d": {"label": "1-month return", "default_direction": "top"},

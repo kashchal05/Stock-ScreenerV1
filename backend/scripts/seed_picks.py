@@ -20,7 +20,7 @@ from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.ml.dataset import build_dataset
 from app.ml.train import walk_forward_evaluate
-from app.models import ModelVersion, PickLog
+from app.models import ModelVersion, PickLog, WfPrediction
 from app.services.market_data import load_bars
 from app.services.universe import BENCHMARK_SYMBOL
 
@@ -50,6 +50,19 @@ def main() -> None:
         # SPY forward return per date (same horizon), for the benchmark column.
         spy = load_bars(db, BENCHMARK_SYMBOL)
         spy_fwd = (spy["close"].shift(-args.horizon) / spy["close"] - 1) if not spy.empty else None
+
+        # Store the FULL out-of-sample prediction panel so the backtester can rank
+        # the whole universe by the model's leak-free score on any date.
+        print("Storing full walk-forward prediction panel...")
+        db.query(WfPrediction).delete()
+        db.commit()
+        wf_records = [
+            {"date": pd.Timestamp(r.date).date(), "symbol": r.symbol, "prob": float(r.prob)}
+            for r in preds.itertuples(index=False)
+        ]
+        db.bulk_insert_mappings(WfPrediction, wf_records)
+        db.commit()
+        print(f"  stored {len(wf_records)} predictions")
 
         # Replace any previously seeded backtest picks (idempotent).
         db.query(PickLog).filter(PickLog.source == "backtest").delete()

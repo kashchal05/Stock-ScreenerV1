@@ -141,3 +141,20 @@ class PickLog(Base):
     model_version: Mapped[str | None] = mapped_column(String)
     source: Mapped[str] = mapped_column(String, default="backtest")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class WfPrediction(Base):
+    """Full out-of-sample walk-forward predictions (every test-window row), so the
+    backtester can rank the whole universe by the model's leak-free score on any
+    date. Seeded by scripts/seed_picks.py alongside the track record."""
+
+    __tablename__ = "wf_predictions"
+    __table_args__ = (
+        UniqueConstraint("date", "symbol", name="uq_wf_predictions_date_symbol"),
+        Index("ix_wf_predictions_date", "date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[date] = mapped_column(Date)
+    symbol: Mapped[str] = mapped_column(String)
+    prob: Mapped[float] = mapped_column(Float)

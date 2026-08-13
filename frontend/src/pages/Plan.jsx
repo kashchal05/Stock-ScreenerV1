@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { buildPlan } from '../api.js'
 import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import ErrorBanner from '../components/ErrorBanner.jsx'
@@ -82,8 +83,13 @@ export default function Plan() {
           </div>
 
           <div className="panel">
-            <h2>The strategy</h2>
-            <p style={{ marginTop: 0 }}>{s.rationale}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ marginBottom: 0 }}>The strategy</h2>
+              <Link to="/backtest?signal=ai_walkforward" className="chip" style={{ textDecoration: 'none' }}>
+                Backtest this strategy →
+              </Link>
+            </div>
+            <p>{s.rationale}</p>
             <div className="totals-row">
               <div className="item"><div className="label">Approach</div><div className="value" style={{ fontSize: 15 }}>{s.approach}</div></div>
             </div>
