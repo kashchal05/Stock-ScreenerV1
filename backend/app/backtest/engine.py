@@ -19,6 +19,7 @@ import pandas as pd
 
 from app.backtest.metrics import compute_metrics
 from app.backtest.spec import AI_SIGNAL, SIGNAL_CHOICES, StrategySpec
+from app.backtest.weighting import target_weights
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,16 @@ def _ai_signal_panel(db, cache_key) -> pd.DataFrame:
     return panel
 
 
-def simulate(closes: pd.DataFrame, signal: pd.DataFrame, bench_close: pd.Series, spec: StrategySpec) -> dict:
+def simulate(
+    closes: pd.DataFrame,
+    signal: pd.DataFrame,
+    bench_close: pd.Series,
+    spec: StrategySpec,
+    vol_panel: pd.DataFrame | None = None,
+) -> dict:
     """Pure core. closes: dates x symbols. signal: dates x symbols (point-in-time).
-    bench_close: benchmark close series. Returns a results dict or {"error": ...}."""
+    bench_close: benchmark close series. vol_panel: dates x symbols volatilities for
+    inverse-vol weighting (point-in-time). Returns a results dict or {"error": ...}."""
     idx = closes.index
     if spec.start is not None:
         idx = idx[idx >= pd.Timestamp(spec.start)]
@@ -112,6 +120,8 @@ def simulate(closes: pd.DataFrame, signal: pd.DataFrame, bench_close: pd.Series,
 
     closes = closes.loc[idx]
     signal = signal.reindex(index=idx, columns=closes.columns)
+    if vol_panel is not None:
+        vol_panel = vol_panel.reindex(index=idx, columns=closes.columns)
     daily_ret = closes.pct_change()
 
     valid_counts = signal.notna().sum(axis=1).to_numpy()
@@ -132,7 +142,14 @@ def simulate(closes: pd.DataFrame, signal: pd.DataFrame, bench_close: pd.Series,
         if s.empty:
             continue
         picks = s.sort_values(ascending=ascending).head(spec.top_k)
-        weights_at.loc[t, picks.index] = 1.0 / len(picks)
+        vols = (
+            vol_panel.loc[t, picks.index].to_dict()
+            if (spec.weighting == "inverse_vol" and vol_panel is not None)
+            else None
+        )
+        w = target_weights(picks.index, vols=vols, scheme=spec.weighting)
+        ws = pd.Series(w)
+        weights_at.loc[t, ws.index] = ws.values
         holdings[t] = picks
 
     # Effective weights: hold the target from each rebalance forward, applied with a
@@ -215,17 +232,22 @@ def run_backtest(db, spec: StrategySpec) -> dict:
     if BENCHMARK_SYMBOL not in closes.columns:
         return {"error": "benchmark data not available — run a data refresh"}
 
+    spy_close = bars.get(BENCHMARK_SYMBOL)
+    spy_series = spy_close["close"] if spy_close is not None else None
+
     if spec.signal == AI_SIGNAL:
         signal = _ai_signal_panel(db, _cache["key"])
         if signal.empty:
             return {"error": "no walk-forward predictions yet — run scripts/seed_picks.py"}
     else:
-        spy_close = bars.get(BENCHMARK_SYMBOL)
-        spy_series = spy_close["close"] if spy_close is not None else None
         signal = _signal_panel(bars, spy_series, spec.signal, _cache["key"])
 
+    vol_panel = None
+    if spec.weighting == "inverse_vol":
+        vol_panel = _signal_panel(bars, spy_series, "vol_21d", _cache["key"])
+
     universe_closes = closes.drop(columns=[BENCHMARK_SYMBOL], errors="ignore")
-    result = simulate(universe_closes, signal, closes[BENCHMARK_SYMBOL], spec)
+    result = simulate(universe_closes, signal, closes[BENCHMARK_SYMBOL], spec, vol_panel=vol_panel)
     if isinstance(result, dict) and result.get("ok"):
         result["out_of_sample"] = spec.signal == AI_SIGNAL
     return result

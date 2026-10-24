@@ -68,6 +68,41 @@ def test_costs_reduce_return():
     assert costly["metrics"]["avg_turnover"] > 0
 
 
+def test_target_weights_schemes():
+    from app.backtest.weighting import target_weights
+
+    # inverse-vol: half the vol -> double the weight
+    w = target_weights(["A", "B"], vols={"A": 0.01, "B": 0.02}, scheme="inverse_vol")
+    assert w["A"] == pytest.approx(2 / 3)
+    assert w["B"] == pytest.approx(1 / 3)
+    # missing vol -> neutral (average inverse) fill
+    w2 = target_weights(["A", "B", "C"], vols={"A": 0.01, "B": 0.01}, scheme="inverse_vol")
+    assert w2["C"] == pytest.approx(w2["A"])
+    # no usable vols -> equal weight fallback
+    w3 = target_weights(["A", "B"], vols={"A": 0.0, "B": None}, scheme="inverse_vol")
+    assert w3["A"] == pytest.approx(0.5)
+    # equal
+    assert target_weights(["A", "B", "C"])["A"] == pytest.approx(1 / 3)
+
+
+def test_simulate_inverse_vol_overweights_low_vol_winner():
+    n = 260
+    dates = _dates(n)
+    winner = pd.Series(np.linspace(100, 200, n), index=dates)   # low-vol, goes up
+    flat = pd.Series(np.linspace(100, 100, n), index=dates)     # high-vol, flat
+    closes = pd.DataFrame({"AAA": winner, "BBB": flat})
+    signal = pd.DataFrame({"AAA": pd.Series(1.0, index=dates), "BBB": pd.Series(1.0, index=dates)})
+    vol = pd.DataFrame({"AAA": pd.Series(0.01, index=dates), "BBB": pd.Series(0.02, index=dates)})
+    bench = pd.Series(np.linspace(100, 105, n), index=dates)
+
+    base = StrategySpec(top_k=2, rebalance_days=21, costs_bps=0)
+    inv = StrategySpec(top_k=2, rebalance_days=21, costs_bps=0, weighting="inverse_vol")
+    eq_res = simulate(closes, signal, bench, base)
+    iv_res = simulate(closes, signal, bench, inv, vol_panel=vol)
+    # inverse-vol overweights the low-vol winner, so it should beat equal weight here
+    assert iv_res["metrics"]["total_return"] > eq_res["metrics"]["total_return"]
+
+
 def test_ai_signal_panel_pivots_predictions():
     from datetime import date as _date
 

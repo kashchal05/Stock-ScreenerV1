@@ -95,7 +95,7 @@ export default function Plan() {
             </div>
             <div className="cards" style={{ marginTop: 4 }}>
               <div className="card"><div className="label">Positions</div><div className="value">{s.num_positions}</div></div>
-              <div className="card"><div className="label">Weighting</div><div className="value" style={{ fontSize: 15 }}>Equal</div></div>
+              <div className="card"><div className="label">Weighting</div><div className="value" style={{ fontSize: 15 }}>{s.weighting}</div></div>
               <div className="card"><div className="label">Invested</div><div className="value">{fmtMoney(plan.invested)}</div></div>
               <div className="card"><div className="label">Cash reserve</div><div className="value">{fmtMoney(plan.cash_reserve)}</div></div>
               <div className="card"><div className="label">Hold ~ / review on</div><div className="value" style={{ fontSize: 15 }}>{s.horizon_days}d · {s.review_date}</div></div>

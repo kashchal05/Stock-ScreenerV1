@@ -9,6 +9,7 @@ import { fmtPct, fmtNumber } from '../utils/format.js'
 const DEFAULT_SPEC = {
   signal: 'mom_12_1',
   direction: 'top',
+  weighting: 'equal',
   top_k: 20,
   rebalance_days: 21,
   costs_bps: 10,
@@ -100,6 +101,13 @@ export default function Backtest() {
             <select value={spec.direction} onChange={(e) => set('direction', e.target.value)}>
               <option value="top">Highest (top)</option>
               <option value="bottom">Lowest (bottom)</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Weighting</label>
+            <select value={spec.weighting} onChange={(e) => set('weighting', e.target.value)}>
+              <option value="equal">Equal weight</option>
+              <option value="inverse_vol">Risk-based (inverse vol)</option>
             </select>
           </div>
           <div className="field">

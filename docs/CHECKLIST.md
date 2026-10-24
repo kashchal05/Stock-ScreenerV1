@@ -6,6 +6,8 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 ## ✅ Already done
 
+- [x] **Risk-based position sizing (inverse-volatility weighting)** — a new weighting option in the Backtest lab, and the Plan auto-uses it in volatile/defensive regimes (equal-weight when calm). Lower volatility & drawdown than equal weight; a lightweight risk-parity.
+
 - [x] **Build-a-Plan (capstone)** — enter a dollar amount → the app reads the market regime (SPY trend, volatility, breadth), picks the strategy (position count + cash by regime), selects the top AI names with sector diversification, sizes each in whole shares, and shows the backtested expectation. The "run it with money, get a dated buy list" workflow.
 
 - [x] Cross-sectional target (predict beating the S&P 500 median, not absolute up/down)
@@ -85,7 +87,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 ## 6. Ambitious / moonshot
 
 - [x] Paper-trading loop (record live picks, track actual forward performance) — **M** ⭐⭐⭐ — *see the Track record page; seeded from walk-forward, live picks accrue on refresh*
-- [ ] Portfolio optimizer (mean-variance / risk-parity sizing with constraints) — **L** ⭐⭐
+- [~] Portfolio optimizer — **L** ⭐⭐ — *inverse-volatility (risk-parity-lite) sizing shipped in the Plan + Backtest lab; full mean-variance with constraints still open*
 - [ ] LLM research assistant ("why does the model like NVDA?", filings/news summary) — **L** ⭐⭐
 - [ ] Multi-asset (ETFs, crypto, intraday) — **XL** ⭐
 

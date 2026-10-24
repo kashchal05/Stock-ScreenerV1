@@ -28,6 +28,7 @@ class StrategySpec(BaseModel):
 
     signal: str = "mom_12_1"
     direction: str = Field(default="top", pattern="^(top|bottom)$")
+    weighting: str = Field(default="equal", pattern="^(equal|inverse_vol)$")
     top_k: int = Field(default=20, ge=1, le=100)
     rebalance_days: int = Field(default=21, ge=5, le=252)
     costs_bps: float = Field(default=10.0, ge=0, le=100)

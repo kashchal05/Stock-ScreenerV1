@@ -13,6 +13,7 @@ import numpy as np
 
 from sqlalchemy.orm import Session
 
+from app.backtest.weighting import target_weights
 from app.models import ModelVersion, ScreenerSnapshot, Ticker
 from app.services.market_data import load_bars
 from app.services.universe import BENCHMARK_SYMBOL
@@ -78,12 +79,16 @@ def assess_market(db: Session) -> dict:
 
 
 def _stance_params(stance: str) -> dict:
-    """How aggressive to be, by regime."""
+    """How aggressive to be, by regime. Calmer regimes ride momentum equal-weight;
+    volatile/weak regimes size by risk (inverse volatility) and hold cash."""
     return {
-        "risk_on": {"positions": 18, "invested": 1.0, "require_uptrend": False},
-        "cautious": {"positions": 14, "invested": 0.8, "require_uptrend": True},
-        "defensive": {"positions": 10, "invested": 0.6, "require_uptrend": True},
+        "risk_on": {"positions": 18, "invested": 1.0, "require_uptrend": False, "weighting": "equal"},
+        "cautious": {"positions": 14, "invested": 0.8, "require_uptrend": True, "weighting": "inverse_vol"},
+        "defensive": {"positions": 10, "invested": 0.6, "require_uptrend": True, "weighting": "inverse_vol"},
     }[stance]
+
+
+_WEIGHTING_LABELS = {"equal": "Equal weight", "inverse_vol": "Risk-based (inverse volatility)"}
 
 
 def build_plan(db: Session, capital: float, num_positions: int | None = None) -> dict:
@@ -98,20 +103,26 @@ def build_plan(db: Session, capital: float, num_positions: int | None = None) ->
     params = _stance_params(market["stance"])
     k = int(num_positions) if num_positions else params["positions"]
     invested_fraction = params["invested"]
+    weighting = params["weighting"]
 
-    # Uptrend filter (defensive/cautious regimes): only names above their 200-day avg.
+    # Point-in-time panels: the uptrend filter (defensive/cautious) and the per-name
+    # volatilities used for risk-based sizing.
     uptrend_symbols = None
-    if params["require_uptrend"]:
-        try:
-            from app.backtest.engine import _cache, _load_universe, _signal_panel
+    vol_lookup: dict = {}
+    try:
+        from app.backtest.engine import _cache, _load_universe, _signal_panel
 
-            _, bars = _load_universe(db)
-            spy_series = bars[BENCHMARK_SYMBOL]["close"] if BENCHMARK_SYMBOL in bars else None
-            panel = _signal_panel(bars, spy_series, "close_sma200_ratio", _cache["key"])
-            last_row = panel.iloc[-1]
+        _, bars = _load_universe(db)
+        spy_series = bars[BENCHMARK_SYMBOL]["close"] if BENCHMARK_SYMBOL in bars else None
+        if params["require_uptrend"]:
+            trend = _signal_panel(bars, spy_series, "close_sma200_ratio", _cache["key"])
+            last_row = trend.iloc[-1]
             uptrend_symbols = set(last_row[last_row > 0].dropna().index)
-        except Exception:
-            logger.exception("uptrend filter failed")
+        if weighting == "inverse_vol":
+            vol_panel = _signal_panel(bars, spy_series, "vol_21d", _cache["key"])
+            vol_lookup = vol_panel.iloc[-1].dropna().to_dict()
+    except Exception:
+        logger.exception("plan panels failed")
 
     candidates = (
         db.query(ScreenerSnapshot)
@@ -121,31 +132,42 @@ def build_plan(db: Session, capital: float, num_positions: int | None = None) ->
     )
 
     invest_budget = capital * invested_fraction
-    per_position = invest_budget / k if k else 0
+
+    # 1) Select eligible holdings (top-K by AI score, uptrend + sector-cap filtered).
+    #    Selection is independent of the weighting scheme.
+    selected = []
     sector_counts: dict[str, int] = {}
-    picks = []
-    spent = 0.0
     for snap in candidates:
-        if len(picks) >= k:
+        if len(selected) >= k:
             break
         if uptrend_symbols is not None and snap.symbol not in uptrend_symbols:
             continue
         sector = snap.sector or "Unknown"
         if sector_counts.get(sector, 0) >= SECTOR_CAP:
             continue
-        if not snap.price or snap.price <= 0 or snap.price > per_position:
-            continue  # unaffordable at this per-position budget
-        shares = math.floor(per_position / snap.price)
+        if not snap.price or snap.price <= 0 or snap.price > invest_budget:
+            continue  # can't afford even one share within the budget
+        sector_counts[sector] = sector_counts.get(sector, 0) + 1
+        selected.append(snap)
+
+    # 2) Target weights (equal or inverse-vol), then size in whole shares.
+    weights = target_weights(
+        [s.symbol for s in selected], vols=vol_lookup or None, scheme=weighting
+    )
+    picks = []
+    spent = 0.0
+    for snap in selected:
+        target_dollar = invest_budget * weights.get(snap.symbol, 0.0)
+        shares = math.floor(target_dollar / snap.price)
         if shares < 1:
             continue
         allocation = shares * snap.price
         spent += allocation
-        sector_counts[sector] = sector_counts.get(sector, 0) + 1
         picks.append(
             {
                 "symbol": snap.symbol,
                 "name": snap.name,
-                "sector": sector,
+                "sector": snap.sector or "Unknown",
                 "price": snap.price,
                 "shares": shares,
                 "allocation": allocation,
@@ -187,7 +209,7 @@ def build_plan(db: Session, capital: float, num_positions: int | None = None) ->
             "stance": market["stance"],
             "num_positions": len(picks),
             "target_positions": k,
-            "weighting": "equal weight",
+            "weighting": _WEIGHTING_LABELS.get(weighting, weighting),
             "invested_fraction": invested_fraction,
             "horizon_days": horizon,
             "review_date": str(review_date),
