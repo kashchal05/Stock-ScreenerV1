@@ -4,11 +4,21 @@ A full-stack stock screener for the S&P 500 with an honestly-evaluated ML trend 
 
 - **Screen** 500+ stocks by price, volume, market cap, P/E, RSI, momentum (1d/1w/1m/YTD), 52-week range position, sector, and AI score — server-side filtering over a local SQLite cache, so queries return in milliseconds.
 - **Stock detail pages** with price/volume charts (1M–5Y), key stats, and computed technical indicators.
-- **AI trend prediction**: an XGBoost classifier estimates the probability a stock closes higher in 10 trading days, with per-prediction explanations (TreeSHAP feature contributions) and a fully disclosed walk-forward evaluation.
+- **AI prediction**: an XGBoost cross-sectional classifier estimates the probability a stock **beats the S&P 500 median** over the next 21 trading days, with per-prediction explanations (TreeSHAP) and a fully disclosed walk-forward evaluation.
+- **Build a Plan**: turn a dollar amount into a dated buy list — AI picks sized for the current market regime, with the model's backtested track record as the expectation.
+- **Backtest lab**: test any rule-based strategy or the AI itself (out-of-sample) over history — equity curve, Sharpe/Sortino/drawdown, and a significance test.
 - **Watchlist/portfolio**: track holdings with cost basis, live valuation, P/L, and AI score.
 - **One-click data refresh**: incremental daily-bar updates, fundamentals, snapshot rebuild, and AI re-scoring run as a background job with status polling.
 
 **Stack**: FastAPI + SQLAlchemy + SQLite · pandas + XGBoost · React 19 + Vite + Recharts · yfinance (swappable data-provider adapter).
+
+## Documentation
+
+- **[docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** — the comprehensive, current from-scratch guide: every package, the full data pipeline, all 9 DB tables and ~22 endpoints, the ML + backtest + plan systems, the frontend, testing, and how to extend it. **Start here.**
+- [docs/ABOUT.md](docs/ABOUT.md) — user-facing overview of what each page does.
+- [docs/BACKTESTER_PLAN.md](docs/BACKTESTER_PLAN.md) — the backtester design doc.
+- [docs/ROADMAP.md](docs/ROADMAP.md) · [docs/CHECKLIST.md](docs/CHECKLIST.md) — future work and status.
+- [docs/CODE_GUIDE.md](docs/CODE_GUIDE.md) — an earlier, shorter tour (superseded by the Developer's Guide).
 
 ## Setup
 

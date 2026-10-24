@@ -1,5 +1,7 @@
 # Code Guide
 
+> **Superseded by [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** — the comprehensive, current guide covering everything built since (Plan, Backtest lab, Track record, saved screens, risk-based sizing, and more). This older tour is kept for reference.
+
 A file-by-file tour of the codebase, plus what every package does and why it was chosen. Read this top to bottom once and you'll understand the whole app.
 
 ## 1. The big picture
