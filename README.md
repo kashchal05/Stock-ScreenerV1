@@ -16,6 +16,7 @@ A full-stack stock screener for the S&P 500 with an honestly-evaluated ML trend 
 
 - **[docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** — the comprehensive, current from-scratch guide: every package, the full data pipeline, all 9 DB tables and ~22 endpoints, the ML + backtest + plan systems, the frontend, testing, and how to extend it. **Start here.**
 - [docs/ABOUT.md](docs/ABOUT.md) — user-facing overview of what each page does.
+- [docs/DEPLOY.md](docs/DEPLOY.md) — take it live: Alembic migrations, Postgres, Railway/Render, single- vs two-service, and the data-refresh cron.
 - [docs/BACKTESTER_PLAN.md](docs/BACKTESTER_PLAN.md) — the backtester design doc.
 - [docs/ROADMAP.md](docs/ROADMAP.md) · [docs/CHECKLIST.md](docs/CHECKLIST.md) — future work and status.
 - [docs/CODE_GUIDE.md](docs/CODE_GUIDE.md) — an earlier, shorter tour (superseded by the Developer's Guide).

@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 
 import pandas as pd
 from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
@@ -38,7 +39,9 @@ def _upsert_bars(db: Session, symbol: str, frame: pd.DataFrame) -> int:
     ]
     if not records:
         return 0
-    stmt = sqlite_insert(DailyBar).values(records)
+    # Dialect-aware upsert: both SQLite and Postgres support ON CONFLICT DO UPDATE.
+    insert = sqlite_insert if db.bind.dialect.name == "sqlite" else pg_insert
+    stmt = insert(DailyBar).values(records)
     stmt = stmt.on_conflict_do_update(
         index_elements=["symbol", "date"],
         set_={c: getattr(stmt.excluded, c) for c in ["open", "high", "low", "close", "volume"]},

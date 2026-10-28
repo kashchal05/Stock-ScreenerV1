@@ -15,10 +15,17 @@ class Settings(BaseSettings):
     yf_batch_size: int = 100
     backfill_years: int = 5
     prediction_horizon_days: int = 21
+    # Optional: serve the built frontend (frontend/dist) from FastAPI for a
+    # single-service deploy. Empty = API only (frontend hosted separately).
+    static_dir: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_url.startswith("sqlite")
 
 
 settings = Settings()

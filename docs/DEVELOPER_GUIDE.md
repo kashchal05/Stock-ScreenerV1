@@ -337,7 +337,7 @@ Run: `cd backend && .venv/bin/python -m pytest tests/`. Frontend: `cd frontend &
 - **New backtest signal** — add to `SIGNAL_CHOICES`; rule signals need only a `compute_features` column.
 - **New data source** — implement the `DataProvider` ABC in a new file, set `DATA_PROVIDER`.
 - **New page** — add an `api.js` function, a `pages/` component, a route in `App.jsx`, a `Navbar` link.
-- **Deploy** — the app is 12-factor (all config via env). Add Alembic, point `DATABASE_URL` at Postgres (re-check the one SQLite-specific upsert in `market_data.py`), serve `uvicorn app.main:app`, host the `npm run build` output, and cron `refresh_data.py` + monthly `train_model.py`.
+- **Deploy** — deploy-ready: Alembic migrations (`backend/alembic/`), a dialect-aware upsert (SQLite + Postgres), and optional single-service static serving (set `STATIC_DIR` → FastAPI serves the built SPA). `app/main.py` auto-creates tables only on SQLite; Postgres uses `alembic upgrade head`. See **[DEPLOY.md](DEPLOY.md)** for the Railway/Render + Postgres + cron runbook.
 
 ---
 

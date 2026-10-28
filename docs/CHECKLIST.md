@@ -6,6 +6,8 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 ## ✅ Already done
 
+- [x] **Deploy-readiness** — Alembic migrations (initial schema for all 9 tables, verified up/down), dialect-aware upsert (SQLite + Postgres), optional single-service static serving (FastAPI serves the built SPA), env-driven config, and a full `docs/DEPLOY.md` runbook (Railway/Render + Postgres + cron).
+
 - [x] **Risk-based position sizing (inverse-volatility weighting)** — a new weighting option in the Backtest lab, and the Plan auto-uses it in volatile/defensive regimes (equal-weight when calm). Lower volatility & drawdown than equal weight; a lightweight risk-parity.
 
 - [x] **Build-a-Plan (capstone)** — enter a dollar amount → the app reads the market regime (SPY trend, volatility, breadth), picks the strategy (position count + cash by regime), selects the top AI names with sector diversification, sizes each in whole shares, and shows the backtested expectation. The "run it with money, get a dated buy list" workflow.
@@ -77,7 +79,7 @@ A living checklist of everything on the roadmap. Effort: **S** = a few hours · 
 
 ## 5. Engineering, infra & deployment
 
-- [ ] Deploy (Alembic → Postgres → Railway/Render + cron refresh/retrain) — **M** ⭐⭐⭐
+- [~] Deploy (Alembic → Postgres → Railway/Render + cron refresh/retrain) — **M** ⭐⭐⭐ — *deploy-readiness DONE: Alembic migrations, dialect-aware (SQLite/Postgres) upsert, single-service static serving, and `docs/DEPLOY.md` runbook. Remaining: the actual hosted deploy (needs your Railway/Render account) + the scheduled cron.*
 - [ ] Auth (shared password, or users + JWT) — **M** ⭐⭐
 - [x] API tests — **S** ⭐⭐
 - [x] CI (GitHub Actions: pytest + lint + build on every push) — **S** ⭐⭐
